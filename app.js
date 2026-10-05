@@ -29,6 +29,12 @@ const AVATARS=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Gua
 const AVATAR_META={"🛡️ Cavaleiro Endpoint":{icon:"🛡️",className:"avatar-knight",tag:"ENDPOINT"},"🧙 Maga da Criptografia":{icon:"🧙",className:"avatar-mage",tag:"CRIPTOGRAFIA"},"⚡ Guardião Cisco":{icon:"⚡",className:"avatar-cisco",tag:"CISCO"},"🐧 Sentinela Linux":{icon:"🐧",className:"avatar-linux",tag:"LINUX"},"🤖 Sentinela IA":{icon:"🤖",className:"avatar-ai",tag:"IA"},"🧭 Guardiã Zero Trust":{icon:"🧭",className:"avatar-zero",tag:"ZERO TRUST"}};
 const WEAPONS=["🧱 Escudo Firewall","🏹 Arco do Linux","🔰 Lança Cisco","✨ Núcleo IA","🛡️ Escudo Zero Trust","🔮 Chave Criptográfica"];
 
+const RUIN_COLLIDERS=[
+  {x:8,y:12,w:24,h:3},{x:8,y:12,w:3,h:25},{x:29,y:12,w:3,h:25},{x:8,y:34,w:10,h:3},{x:24,y:34,w:8,h:3},
+  {x:68,y:12,w:24,h:3},{x:68,y:12,w:3,h:25},{x:89,y:12,w:3,h:25},{x:68,y:34,w:9,h:3},{x:83,y:34,w:9,h:3},
+  {x:32,y:63,w:32,h:3},{x:32,y:63,w:3,h:28},{x:61,y:63,w:3,h:28},{x:32,y:88,w:14,h:3},{x:52,y:88,w:12,h:3},
+  {x:30,y:25,w:17,h:3},{x:53,y:25,w:17,h:3},{x:74,y:53,w:20,h:3}
+];
 const state={
   name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],weapon:WEAPONS[0],
   hp:100,position:{x:15,y:82},players:{},turn:null,target:null,channel:null,connected:false,
@@ -170,8 +176,11 @@ function renderArena(){
       <span class="pill">⭐ <b id="scoreValue">${state.score}</b></span><span class="pill">🎯 Turno: <b id="turnValue">${esc(state.turn)}</b></span>
     </div>
     <div class="arena battlefield" id="battlefield">
-      <div class="castle c1"><span>RUÍNA A</span></div><div class="castle c2"><span>RUÍNA B</span></div>
+      <div class="ruin ruin-a"><div class="ruin-title">🏰 TORRE NORTE</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr1"></i><i class="crack cr2"></i></div>
+      <div class="ruin ruin-b"><div class="ruin-title">🏰 CIDADELA LESTE</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr3"></i><i class="crack cr4"></i></div>
+      <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr5"></i></div>
       <div class="wall w1"></div><div class="wall w2"></div>
+      <div class="map-sign">🚪 Entre nas ruínas · explore · encontre outros jogadores</div>
       <div class="healer">🧙‍♀️<small>CURANDEIRA</small></div>
       <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
@@ -222,11 +231,24 @@ function selectTarget(name){
 }
 window.selectTarget=selectTarget;
 
+function collidesWithRuins(x,y){
+  const radius=2.2;
+  return RUIN_COLLIDERS.some(r=>{
+    const nearestX=Math.max(r.x,Math.min(x,r.x+r.w));
+    const nearestY=Math.max(r.y,Math.min(y,r.y+r.h));
+    return Math.hypot(x-nearestX,y-nearestY)<radius;
+  });
+}
 function movePlayer(dx,dy){
   if(state.battleOver)return;
-  state.position.x=Math.max(5,Math.min(95,state.position.x+dx));
-  state.position.y=Math.max(5,Math.min(95,state.position.y+dy));
+  const nx=Math.max(5,Math.min(95,state.position.x+dx));
+  const ny=Math.max(5,Math.min(95,state.position.y+dy));
+  if(collidesWithRuins(nx,ny)){toast("🏚️ Muro da ruína bloqueado. Procure uma entrada.");return;}
+  state.position.x=nx;state.position.y=ny;
   if(Math.hypot(state.position.x-50,state.position.y-45)<12&&state.hp<100){state.hp=Math.min(100,state.hp+20);toast("🧙‍♀️ Curandeira restaurou +20 HP");}
+  if(state.position.x<32&&state.position.y<38)toast("🏰 Você entrou na Torre Norte.");
+  else if(state.position.x>67&&state.position.y<38)toast("🏰 Você entrou na Cidadela Leste.");
+  else if(state.position.x>31&&state.position.x<65&&state.position.y>63)toast("🏰 Você entrou no Salão Subterrâneo.");
   syncSelf();broadcast("player_state",localPlayer());renderArenaState();
 }
 window.movePlayer=movePlayer;
