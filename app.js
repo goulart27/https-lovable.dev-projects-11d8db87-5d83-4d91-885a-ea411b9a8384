@@ -246,11 +246,23 @@ function selectTarget(name){
 window.selectTarget=selectTarget;
 
 function collidesWithRuins(x,y){
-  const radius=2.2;
+  const radius=1.4;
   return RUIN_COLLIDERS.some(r=>{
     const nearestX=Math.max(r.x,Math.min(x,r.x+r.w));
     const nearestY=Math.max(r.y,Math.min(y,r.y+r.h));
     return Math.hypot(x-nearestX,y-nearestY)<radius;
+  });
+}
+function canUseRuinDoor(fromX,fromY,toX,toY){
+  const doors=[
+    {x1:17,x2:25,y:37,axis:"y"},
+    {x1:77,x2:85,y:37,axis:"y"},
+    {x1:44,x2:52,y:63,axis:"y"}
+  ];
+  return doors.some(d=>{
+    const inDoor=toX>d.x1&&toX<d.x2;
+    if(d.axis!=="y"||!inDoor)return false;
+    return (fromY>d.y+1&&toY<=d.y+1)||(fromY<d.y-1&&toY>=d.y-1);
   });
 }
 function getRuinZone(x,y){
@@ -275,7 +287,10 @@ function movePlayer(dx,dy){
   if(state.battleOver)return;
   const nx=Math.max(5,Math.min(95,state.position.x+dx));
   const ny=Math.max(5,Math.min(95,state.position.y+dy));
-  if(collidesWithRuins(nx,ny)){toast("🏚️ Muro bloqueado. Procure uma entrada ou corredor.");return;}
+  if(collidesWithRuins(nx,ny)&&!canUseRuinDoor(state.position.x,state.position.y,nx,ny)){
+    toast("🏚️ Muro bloqueado. Procure a entrada dourada da ruína.");
+    return;
+  }
   state.position.x=nx;state.position.y=ny;
   if(Math.hypot(state.position.x-50,state.position.y-45)<12&&state.hp<100){state.hp=Math.min(100,state.hp+20);toast("🧙‍♀️ Curandeira restaurou +20 HP");}
   checkExploration();
