@@ -1,23 +1,296 @@
-const URL=window.CYBERMEDIEVAL_SUPABASE_URL||"",KEY=window.CYBERMEDIEVAL_SUPABASE_KEY||"",sb=URL&&KEY?supabase.createClient(URL,KEY):null;
-const qs=[["IA","Qual técnica permite aprender padrões a partir de exemplos?",["Aprendizado de máquina","NAT","DNS","FTP"],0],["Redes","Qual protocolo traduz nomes de domínio em IP?",["HTTP","DNS","SSH","FTP"],1],["Linux","Qual comando lista arquivos?",["cd","pwd","ls","mkdir"],2],["Segurança","Qual prática reduz o impacto de uma senha comprometida?",["Desativar logs","MFA","Reutilizar senha","Abrir portas"],1],["Cisco","Qual dispositivo encaminha pacotes entre redes?",["Switch","Roteador","Hub","Access Point"],1],["Vulnerabilidades","O que é uma vulnerabilidade?",["Fraqueza explorável","Backup","Antivírus","Usuário"],0],["Endpoints","Um notebook corporativo conectado é um:",["Endpoint","DNS","Gateway","Firewall"],0],["Linux","Qual comando mostra o diretório atual?",["pwd","grep","touch","rm"],0],["Cisco","Qual protocolo permite administração remota segura?",["Telnet","SSH","FTP","HTTP"],1],["IA","Um sistema que classifica spam é exemplo de:",["Classificação","NAT","Criptografia","Roteamento"],0]];
-const avatars=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Hacker Linux","🤖 Sentinela IA"],weapons=["⚔️ Espada Firewall","🏹 Arco do Linux","🔱 Lança Cisco","🪄 Cajado IA","🛡️ Escudo Zero Trust"];
-let s={name:"",room:"CASTELO-01",level:1,qi:0,xp:0,score:0,avatar:avatars[0],weapon:weapons[0],hp:100,channel:null,players:{},turn:null,battleQ:0,pos:{x:15,y:82},target:null,leaderboard:[],battleOver:false,winner:null,actionIds:{},stateVersion:0};
-const app=document.querySelector("#app");
-function toast(x){const e=document.createElement("div");e.className="toast";e.textContent=x;document.body.append(e);setTimeout(()=>e.remove(),2200)}
-function lobby(){app.innerHTML='<main class="screen"><div class="shell hero"><section class="panel"><div class="brand">⚔ CyberMedieval Shield</div><h1 class="title">Defenda o Reino.<br>Domine a Tecnologia.</h1><p class="subtitle">Jornada educativa medieval cyberpunk por IA, redes, Linux, vulnerabilidades, endpoints e Cisco.</p><div class="grid"><div class="stat"><b>10</b>Níveis</div><div class="stat"><b>6</b>Jogadores</div><div class="stat"><b>∞</b>Desafios</div></div></section><section class="panel"><h2>🏰 Entrar no Reino</h2><label>Nome do jogador</label><input id="name" placeholder="Digite seu nome"><label>Código da sala</label><input id="room" value="CASTELO-01"><button id="go" style="width:100%;margin-top:14px">Entrar na aventura</button><p class="small">Níveis 1–5: Academia • Níveis 6–10: Arena multiplayer</p></section></div></main>';document.querySelector("#go").onclick=()=>{s.name=document.querySelector("#name").value.trim()||"Jogador";s.room=document.querySelector("#room").value.trim()||"CASTELO-01";quiz();presence()}}
-function quiz(){const q=qs[s.qi%qs.length];app.innerHTML='<main class="screen"><div class="shell"><div class="topbar"><div><div class="brand">ACADEMIA CYBERMEDIEVAL</div><h2>Nível '+s.level+" · "+q[0]+'</h2></div><span class="pill">XP '+s.xp+" · ⭐ "+s.score+'</span></div><section class="panel"><p class="small">Desafio '+s.level+'/5</p><h2>'+q[1]+'</h2><div class="choices">'+q[2].map((a,i)=>'<button class="choice" data-i="'+i+'">'+a+"</button>").join("")+'</div></section><section class="panel" style="margin-top:14px"><div class="grid"><div class="card">🧙 '+s.avatar+'</div><div class="card">⚔️ '+s.weapon+'</div><div class="card">🏆 '+s.score+' pontos</div></div></section></div></main>';document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>answer(+b.dataset.i,q))}
-function answer(i,q){document.querySelectorAll(".choice").forEach(b=>b.disabled=true);if(i===q[3]){s.score+=100;s.xp+=50;toast("⚡ Acerto! +100 pontos");if(s.level<5){s.level++;setTimeout(reward,600)}else{s.level=6;setTimeout(arena,700)}}else{toast("🛡️ Resposta incorreta — turno/conceito perdido");setTimeout(()=>{s.qi++;quiz()},900)}persist()}
-function reward(){app.innerHTML='<main class="screen"><div class="shell"><section class="panel"><div class="brand">✨ RECOMPENSA</div><h1>Nível '+s.level+'</h1><p class="subtitle">Escolha avatar e equipamento.</p><h3>Avatar</h3><div class="choices">'+avatars.map(a=>'<button class="choice av">'+a+"</button>").join("")+'</div><h3>Arma</h3><div class="choices">'+weapons.map(w=>'<button class="choice we">'+w+"</button>").join("")+'</div><button id="cont" style="margin-top:16px">Continuar →</button></section></div></main>';document.querySelectorAll(".av").forEach(b=>b.onclick=()=>{s.avatar=b.textContent});document.querySelectorAll(".we").forEach(b=>b.onclick=()=>{s.weapon=b.textContent});document.querySelector("#cont").onclick=()=>{s.qi++;quiz()}}
-function renderBattleState(){const ps=Object.values(s.players);const e=document.querySelector("#players");if(e)e.textContent="👥 "+ps.length+"/6 jogadores";const turn=document.querySelector("#turn");if(turn)turn.textContent=s.turn||s.name;const board=document.querySelector("#leaderboard");if(board){board.innerHTML=ps.sort((a,b)=>(b.score||0)-(a.score||0)).map((p,i)=>"<div class=\"card\">"+(i+1)+"º "+p.name+" · ⭐ "+(p.score||0)+" · ❤️ "+(p.hp??100)+"</div>").join("")}paintPositions();renderTargets();const hp=document.querySelector("#myHp");if(hp)hp.textContent=s.hp}
-function paintPositions(){const me=document.querySelector("#me");if(me){me.style.left=s.pos.x+"%";me.style.top=s.pos.y+"%";me.style.bottom="auto";me.classList.toggle("selected",!!s.target)}const box=document.querySelector("#remotePlayers");if(box)box.innerHTML=Object.values(s.players).filter(p=>p.name!==s.name).map(p=>'<button class="player remote '+(s.target===p.name?"targeted":"")+'" onclick="selectTarget(\''+String(p.name).replace(/'/g,"\\'")+'\')" style="left:'+(p.x||50)+'%;top:'+(p.y||50)+'%;bottom:auto" title="Selecionar '+p.name+'">⚡</button>').join("")}
-function renderTargets(){const box=document.querySelector("#targets");if(!box)return;const enemies=Object.values(s.players).filter(p=>p.name!==s.name&&(p.hp??100)>0);box.innerHTML=enemies.length?enemies.map(p=>'<button class="choice '+(s.target===p.name?"targeted":"")+'" onclick="selectTarget(\''+String(p.name).replace(/'/g,"\\'")+'\')">🎯 '+p.name+' · ❤️ '+(p.hp??100)+'</button>').join(""):'<div class="small">Nenhum adversário disponível.</div>'}
-function selectTarget(name){if(s.battleOver)return;if(s.players[name]&&(s.players[name].hp??100)>0){s.target=name;toast("🎯 Alvo selecionado: "+name);paintPositions();renderTargets()}}
-function movePlayer(dx,dy){if(s.battleOver)return;s.pos.x=Math.max(5,Math.min(95,s.pos.x+dx));s.pos.y=Math.max(5,Math.min(95,s.pos.y+dy));const dxh=s.pos.x-50,dyh=s.pos.y-45;if(Math.hypot(dxh,dyh)<12&&s.hp<100){s.hp=Math.min(100,s.hp+20);toast("🧙‍♀️ Curandeira restaurou +20 HP")}paintPositions();if(s.channel)s.channel.send({type:"broadcast",event:"move",payload:{name:s.name,x:s.pos.x,y:s.pos.y,hp:s.hp,score:s.score}});persist()}
-function battleResult(){const alive=Object.values(s.players).filter(p=>(p.hp??100)>0);if(alive.length===1&&Object.keys(s.players).length>1)return alive[0].name;return null}
-function showBattleEnd(winner){app.innerHTML='<main class="screen"><div class="shell"><section class="panel" style="text-align:center"><div class="brand">🏆 FIM DA BATALHA</div><h1>'+(winner===s.name?"👑 VITÓRIA!":"🛡️ DERROTA")+'</h1><p class="subtitle">'+(winner===s.name?"Você foi o último defensor de pé.":"O vencedor foi "+winner+".")+'</p><div class="grid"><div class="stat"><b>'+s.score+'</b>Pontos</div><div class="stat"><b>'+s.hp+'</b>HP final</div><div class="stat"><b>'+winner+'</b>Vencedor</div></div><button onclick="arena()" style="margin-top:18px">Voltar para a arena</button></section></div></main>'}
-function arena(){s.level=Math.max(6,s.level);s.battleOver=false;s.winner=null;if(s.hp<=0)s.hp=100;app.innerHTML='<main class="screen"><div class="shell"><div class="topbar"><div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2>Nível '+s.level+" · Batalha por turnos</h2></div><span class="pill" id="players">👥 1/6 jogadores</span></div><div class="hud"><span class="pill">❤️ HP <b id="myHp">'+s.hp+'</b>/100</span><span class="pill">⚔️ '+s.weapon+'</span><span class="pill">⭐ '+s.score+'</span><span class="pill">🎯 Turno: <b id="turn">'+(s.turn||s.name)+'</b></span></div><div class="arena" id="battlefield"><div class="castle c1"></div><div class="castle c2"></div><div class="healer" id="healer">🧙‍♀️<div class="small">Curandeira</div></div><div class="player" id="me">🛡️</div><div id="remotePlayers"></div></div><section class="panel" style="margin-top:14px"><p class="small">Movimente-se com WASD ou setas. Clique em um adversário para selecioná-lo. Aproxime-se da curandeira para recuperar HP.</p><div class="choices"><button class="choice" onclick="movePlayer(0,-5)">⬆️ Mover</button><button class="choice" onclick="movePlayer(0,5)">⬇️ Mover</button><button class="choice" onclick="movePlayer(-5,0)">⬅️ Mover</button><button class="choice" onclick="movePlayer(5,0)">➡️ Mover</button></div><h3>🎯 Escolha o adversário</h3><div id="targets" class="choices"></div><h3>Pergunta de batalha</h3><p>Qual comando Linux mostra o diretório atual?</p><div class="choices"><button class="choice" onclick="battle(true)">pwd — Ataque</button><button class="choice" onclick="battle(false)">rm</button><button class="choice" onclick="battle(false)">mkdir</button><button class="choice" onclick="battle(false)">touch</button></div></section><section class="panel" style="margin-top:14px"><h3>🏆 Ranking da Arena</h3><div id="leaderboard"></div></section></div></main>';renderBattleState();bindMovement()}
-async function battle(ok){if(s.battleOver){toast("🏆 A batalha já terminou.");return}if(s.turn&&s.turn!==s.name){toast("⏳ Aguarde seu turno.");return}if(!s.target||!s.players[s.target]||(s.players[s.target].hp??100)<=0){toast("🎯 Selecione um adversário vivo.");return}const actionId=s.name+"-"+Date.now();if(s.actionIds[actionId])return;s.actionIds[actionId]=true;const next=Object.keys(s.players).sort();const idx=Math.max(0,next.indexOf(s.name));const nextTurn=next.length?next[(idx+1)%next.length]:s.name;if(ok){s.score+=150;toast("⚔️ Acerto! +150 pontos.");if(s.channel)await s.channel.send({type:"broadcast",event:"battle",payload:{type:"attack",actionId,from:s.name,target:s.target,turn:nextTurn}})}else{toast("❌ Erro! A vez passa ao próximo jogador.");if(s.channel)await s.channel.send({type:"broadcast",event:"turn",payload:{actionId,turn:nextTurn}})}s.turn=nextTurn;renderBattleState();persist()}
-function bindMovement(){document.onkeydown=e=>{const k=e.key.toLowerCase();if(["arrowup","w"].includes(k))movePlayer(0,-5);if(["arrowdown","s"].includes(k))movePlayer(0,5);if(["arrowleft","a"].includes(k))movePlayer(-5,0);if(["arrowright","d"].includes(k))movePlayer(5,0)};paintPositions()}
-async function presence(){if(!sb){s.players={[s.name]:{name:s.name,level:s.level,score:s.score,hp:s.hp,x:s.pos.x,y:s.pos.y}};s.turn=s.name;renderBattleState();return}const c=sb.channel("cybermedieval:"+s.room,{config:{presence:{key:s.name}}});c.on("presence",{event:"sync"},()=>{const state=c.presenceState();s.players={};Object.values(state).flat().forEach(p=>{if(p.name)s.players[p.name]=p});const names=Object.keys(s.players).sort();if(!s.turn||!names.includes(s.turn))s.turn=names[0]||s.name;renderBattleState()}).on("broadcast",{event:"move"},({payload})=>{if(payload?.name&&payload.name!==s.name){s.players[payload.name]={...(s.players[payload.name]||{}),...payload};renderBattleState()}}).on("broadcast",{event:"battle"},({payload})=>{if(!payload||s.actionIds[payload.actionId])return;if(payload.actionId)s.actionIds[payload.actionId]=true;if(payload.type==="attack"){s.turn=payload.turn||s.turn;toast("⚔️ "+payload.from+" realizou uma ação contra "+payload.target)}if(payload.type==="turn")s.turn=payload.turn||s.turn;renderBattleState()}).subscribe(async st=>{if(st==="SUBSCRIBED")await c.track({name:s.name,level:s.level,score:s.score,hp:s.hp,x:s.pos.x,y:s.pos.y})});s.channel=c}
-async function persist(){if(!sb)return;try{await sb.from("players").upsert({name:s.name,room_code:s.room,level:s.level,xp:s.xp,score:s.score,avatar:s.avatar,weapon:s.weapon,hp:s.hp},{onConflict:"room_code,name"})}catch(e){console.warn(e)}}
-lobby();
+(() => {
+"use strict";
+
+const questions = [
+  ["IA","Qual técnica permite aprender padrões a partir de exemplos?",["Aprendizado de máquina","NAT","DNS","FTP"],0],
+  ["Redes","Qual protocolo traduz nomes de domínio em IP?",["HTTP","DNS","SSH","FTP"],1],
+  ["Linux","Qual comando lista arquivos?",["cd","pwd","ls","mkdir"],2],
+  ["Segurança","Qual prática reduz o impacto de uma senha comprometida?",["Desativar logs","MFA","Reutilizar senha","Abrir portas"],1],
+  ["Cisco","Qual dispositivo encaminha pacotes entre redes?",["Switch","Roteador","Hub","Access Point"],1],
+  ["Vulnerabilidades","O que é uma vulnerabilidade?",["Fraqueza explorável","Backup","Antivírus","Usuário"],0],
+  ["Endpoints","Um notebook corporativo conectado é um:",["Endpoint","DNS","Gateway","Firewall"],0],
+  ["Linux","Qual comando mostra o diretório atual?",["pwd","grep","touch","rm"],0],
+  ["Cisco","Qual protocolo permite administração remota segura?",["Telnet","SSH","FTP","HTTP"],1],
+  ["IA","Um sistema que classifica spam é exemplo de:",["Classificação","NAT","Criptografia","Roteamento"],0]
+];
+
+const avatars=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Hacker Linux","🤖 Sentinela IA"];
+const weapons=["⚔️ Espada Firewall","🏹 Arco do Linux","🔱 Lança Cisco","🪄 Cajado IA","🛡️ Escudo Zero Trust"];
+
+const state={
+  name:"",room:"CASTELO-01",level:1,questionIndex:0,xp:0,score:0,
+  avatar:avatars[0],weapon:weapons[0],hp:100,players:{},turn:null,
+  position:{x:15,y:82},target:null,channel:null,battleOver:false
+};
+
+const app=document.getElementById("app");
+
+function toast(message){
+  const el=document.createElement("div");
+  el.className="toast"; el.textContent=message;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2200);
+}
+
+function renderLobby(){
+  app.innerHTML=`
+  <main class="screen"><div class="shell hero">
+    <section class="panel">
+      <div class="brand">⚔ CYBERMEDIEVAL SHIELD</div>
+      <h1 class="title">Defenda o Reino.<br>Domine a Tecnologia.</h1>
+      <p class="subtitle">Uma jornada educativa cyberpunk por IA, redes, Linux, segurança, vulnerabilidades, endpoints e Cisco.</p>
+      <div class="grid">
+        <div class="stat"><b>10</b>Níveis</div>
+        <div class="stat"><b>6</b>Jogadores</div>
+        <div class="stat"><b>∞</b>Desafios</div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>🏰 Entrar no Reino</h2>
+      <label for="playerName">Nome do jogador</label>
+      <input id="playerName" placeholder="Digite seu nome" autocomplete="off">
+      <label for="roomCode">Código da sala</label>
+      <input id="roomCode" value="CASTELO-01" autocomplete="off">
+      <button id="startGame" style="width:100%;margin-top:14px">Entrar na aventura</button>
+      <p class="small">Níveis 1–5: Academia • Níveis 6–10: Arena</p>
+    </section>
+  </div></main>`;
+
+  document.getElementById("startGame").onclick=()=>{
+    state.name=document.getElementById("playerName").value.trim()||"Jogador";
+    state.room=document.getElementById("roomCode").value.trim()||"CASTELO-01";
+    state.level=1; state.questionIndex=0; state.score=0; state.xp=0;
+    state.hp=100; state.position={x:15,y:82};
+    renderQuiz();
+  };
+}
+
+function renderQuiz(){
+  const q=questions[state.questionIndex % questions.length];
+  app.innerHTML=`
+  <main class="screen"><div class="shell">
+    <div class="topbar">
+      <div><div class="brand">ACADEMIA CYBERMEDIEVAL</div><h2>Nível ${state.level} · ${q[0]}</h2></div>
+      <span class="pill">XP ${state.xp} · ⭐ ${state.score}</span>
+    </div>
+    <section class="panel">
+      <p class="small">Desafio ${state.level}/5</p>
+      <h2>${q[1]}</h2>
+      <div class="choices">${q[2].map((a,i)=>`<button class="choice" data-answer="${i}">${a}</button>`).join("")}</div>
+    </section>
+    <section class="panel" style="margin-top:14px">
+      <div class="grid">
+        <div class="card">🧙 ${state.avatar}</div>
+        <div class="card">⚔️ ${state.weapon}</div>
+        <div class="card">🏆 ${state.score} pontos</div>
+      </div>
+    </section>
+  </div></main>`;
+
+  document.querySelectorAll("[data-answer]").forEach(btn=>{
+    btn.onclick=()=>answer(Number(btn.dataset.answer),q);
+  });
+}
+
+function answer(index,q){
+  document.querySelectorAll("[data-answer]").forEach(b=>b.disabled=true);
+  if(index===q[3]){
+    state.score+=100; state.xp+=50;
+    toast("⚡ Acerto! +100 pontos");
+    if(state.level<5){
+      state.level++;
+      setTimeout(renderReward,500);
+    }else{
+      state.level=6;
+      setTimeout(renderArena,600);
+    }
+  }else{
+    toast("🛡️ Resposta incorreta. Tente novamente.");
+    setTimeout(()=>{state.questionIndex++;renderQuiz();},900);
+  }
+}
+
+function renderReward(){
+  app.innerHTML=`
+  <main class="screen"><div class="shell"><section class="panel">
+    <div class="brand">✨ RECOMPENSA</div>
+    <h1>Nível ${state.level}</h1>
+    <p class="subtitle">Escolha seu avatar e equipamento.</p>
+    <h3>Avatar</h3>
+    <div class="choices">${avatars.map(a=>`<button class="choice avatarChoice">${a}</button>`).join("")}</div>
+    <h3>Equipamento</h3>
+    <div class="choices">${weapons.map(w=>`<button class="choice weaponChoice">${w}</button>`).join("")}</div>
+    <button id="continueGame" style="margin-top:16px">Continuar →</button>
+  </section></div></main>`;
+
+  document.querySelectorAll(".avatarChoice").forEach(b=>b.onclick=()=>{state.avatar=b.textContent;toast("Avatar escolhido.")});
+  document.querySelectorAll(".weaponChoice").forEach(b=>b.onclick=()=>{state.weapon=b.textContent;toast("Equipamento escolhido.")});
+  document.getElementById("continueGame").onclick=()=>{state.questionIndex++;renderQuiz()};
+}
+
+function renderArena(){
+  state.battleOver=false;
+  state.turn=state.name;
+  state.players={[state.name]:{name:state.name,score:state.score,hp:state.hp,x:state.position.x,y:state.position.y}};
+
+  app.innerHTML=`
+  <main class="screen"><div class="shell">
+    <div class="topbar">
+      <div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2>Nível 6 · Arena de aprendizagem</h2></div>
+      <span class="pill" id="playerCount">👥 1/6 jogadores</span>
+    </div>
+    <div class="hud">
+      <span class="pill">❤️ HP <b id="hpValue">${state.hp}</b>/100</span>
+      <span class="pill">⚔️ ${state.weapon}</span>
+      <span class="pill">⭐ ${state.score}</span>
+      <span class="pill">🎯 Turno: <b id="turnValue">${state.turn}</b></span>
+    </div>
+    <div class="arena" id="battlefield">
+      <div class="castle c1"></div><div class="castle c2"></div>
+      <div class="healer">🧙‍♀️<div class="small">Curandeira</div></div>
+      <div class="player selected" id="me">🛡️</div>
+      <div id="remotePlayers"></div>
+    </div>
+    <section class="panel" style="margin-top:14px">
+      <p class="small">Use WASD, setas ou os botões para movimentar seu personagem.</p>
+      <div class="choices">
+        <button class="choice" onclick="window.movePlayer(0,-5)">⬆️ Mover</button>
+        <button class="choice" onclick="window.movePlayer(0,5)">⬇️ Mover</button>
+        <button class="choice" onclick="window.movePlayer(-5,0)">⬅️ Mover</button>
+        <button class="choice" onclick="window.movePlayer(5,0)">➡️ Mover</button>
+      </div>
+      <h3>🎯 Escolha o adversário</h3>
+      <div id="targets" class="choices"><div class="small">No modo local, a arena começa com você.</div></div>
+      <h3>🧠 Pergunta de batalha</h3>
+      <p>Qual comando Linux mostra o diretório atual?</p>
+      <div class="choices">
+        <button class="choice" onclick="window.battle(true)">pwd — Resposta correta</button>
+        <button class="choice" onclick="window.battle(false)">rm</button>
+        <button class="choice" onclick="window.battle(false)">mkdir</button>
+        <button class="choice" onclick="window.battle(false)">touch</button>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:14px"><h3>🏆 Ranking</h3><div id="leaderboard"></div></section>
+  </div></main>`;
+
+  renderArenaState();
+  bindMovement();
+  connectRealtime();
+}
+
+function renderArenaState(){
+  const count=Object.keys(state.players).length;
+  const countEl=document.getElementById("playerCount");
+  if(countEl) countEl.textContent="👥 "+count+"/6 jogadores";
+  const turnEl=document.getElementById("turnValue");
+  if(turnEl) turnEl.textContent=state.turn||state.name;
+  const hpEl=document.getElementById("hpValue");
+  if(hpEl) hpEl.textContent=state.hp;
+
+  const me=document.getElementById("me");
+  if(me){
+    me.style.left=state.position.x+"%";
+    me.style.top=state.position.y+"%";
+    me.style.bottom="auto";
+  }
+
+  const board=document.getElementById("leaderboard");
+  if(board){
+    board.innerHTML=Object.values(state.players).sort((a,b)=>(b.score||0)-(a.score||0))
+      .map((p,i)=>`<div class="card">${i+1}º ${p.name} · ⭐ ${p.score||0} · ❤️ ${p.hp??100}</div>`).join("");
+  }
+
+  const targets=document.getElementById("targets");
+  if(targets){
+    const enemies=Object.values(state.players).filter(p=>p.name!==state.name&&(p.hp??100)>0);
+    targets.innerHTML=enemies.length
+      ? enemies.map(p=>`<button class="choice" onclick="window.selectTarget('${String(p.name).replace(/'/g,"\\'")}')">🎯 ${p.name} · ❤️ ${p.hp??100}</button>`).join("")
+      : '<div class="small">Aguardando outros jogadores na sala...</div>';
+  }
+
+  const remote=document.getElementById("remotePlayers");
+  if(remote){
+    remote.innerHTML=Object.values(state.players).filter(p=>p.name!==state.name)
+      .map(p=>`<button class="player remote" style="left:${p.x||50}%;top:${p.y||50}%" onclick="window.selectTarget('${String(p.name).replace(/'/g,"\\'")}')">⚡</button>`).join("");
+  }
+}
+
+window.selectTarget=(name)=>{
+  if(state.players[name]){state.target=name;toast("🎯 Alvo selecionado: "+name);renderArenaState();}
+};
+
+window.movePlayer=(dx,dy)=>{
+  if(state.battleOver)return;
+  state.position.x=Math.max(5,Math.min(95,state.position.x+dx));
+  state.position.y=Math.max(5,Math.min(95,state.position.y+dy));
+  const distance=Math.hypot(state.position.x-50,state.position.y-45);
+  if(distance<12 && state.hp<100){state.hp=Math.min(100,state.hp+20);toast("🧙‍♀️ Curandeira restaurou +20 HP");}
+  renderArenaState();
+  broadcastMove();
+};
+
+window.battle=(correct)=>{
+  if(state.battleOver)return;
+  if(!state.target){toast("🎯 Selecione um adversário quando houver outro jogador na sala.");return;}
+  if(correct){state.score+=150;toast("⚡ Resposta correta! +150 pontos.");}
+  else toast("🧠 Resposta incorreta. O turno passa.");
+  renderArenaState();
+};
+
+function bindMovement(){
+  document.onkeydown=(event)=>{
+    const key=event.key.toLowerCase();
+    if(["arrowup","w"].includes(key))window.movePlayer(0,-5);
+    if(["arrowdown","s"].includes(key))window.movePlayer(0,5);
+    if(["arrowleft","a"].includes(key))window.movePlayer(-5,0);
+    if(["arrowright","d"].includes(key))window.movePlayer(5,0);
+  };
+}
+
+async function connectRealtime(){
+  const URL=window.CYBERMEDIEVAL_SUPABASE_URL||"";
+  const KEY=window.CYBERMEDIEVAL_SUPABASE_KEY||"";
+  if(!URL||!KEY||!window.supabase){return;}
+
+  try{
+    state.channel=window.supabase.channel("cybermedieval:"+state.room,{config:{presence:{key:state.name}}});
+    state.channel.on("presence",{event:"sync"},()=>{
+      const presence=state.channel.presenceState();
+      state.players={};
+      Object.values(presence).flat().forEach(p=>{if(p.name)state.players[p.name]=p;});
+      const names=Object.keys(state.players).sort();
+      state.turn=state.turn&&names.includes(state.turn)?state.turn:(names[0]||state.name);
+      renderArenaState();
+    });
+    state.channel.on("broadcast",{event:"move"},({payload})=>{
+      if(payload?.name&&payload.name!==state.name){
+        state.players[payload.name]={...(state.players[payload.name]||{}),...payload};
+        renderArenaState();
+      }
+    });
+    state.channel.subscribe(async status=>{
+      if(status==="SUBSCRIBED"){
+        await state.channel.track({name:state.name,score:state.score,hp:state.hp,x:state.position.x,y:state.position.y});
+      }
+    });
+  }catch(error){
+    console.warn("Realtime indisponível:",error);
+  }
+}
+
+async function broadcastMove(){
+  if(!state.channel)return;
+  try{
+    await state.channel.send({
+      type:"broadcast",event:"move",
+      payload:{name:state.name,score:state.score,hp:state.hp,x:state.position.x,y:state.position.y}
+    });
+  }catch(error){console.warn("Falha ao sincronizar:",error);}
+}
+
+window.addEventListener("error",(event)=>{
+  console.error(event.error||event.message);
+});
+
+renderLobby();
+})();
