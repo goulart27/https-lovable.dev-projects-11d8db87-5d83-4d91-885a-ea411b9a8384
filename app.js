@@ -255,14 +255,17 @@ function collidesWithRuins(x,y){
 }
 function canUseRuinDoor(fromX,fromY,toX,toY){
   const doors=[
-    {x1:17,x2:25,y:37,axis:"y"},
-    {x1:77,x2:85,y:37,axis:"y"},
-    {x1:44,x2:52,y:63,axis:"y"}
+    {x1:15,x2:27,y:37},
+    {x1:73,x2:87,y:37},
+    {x1:42,x2:54,y:63}
   ];
   return doors.some(d=>{
-    const inDoor=toX>d.x1&&toX<d.x2;
-    if(d.axis!=="y"||!inDoor)return false;
-    return (fromY>d.y+1&&toY<=d.y+1)||(fromY<d.y-1&&toY>=d.y-1);
+    const crossed=(fromY<d.y&&toY>=d.y)||(fromY>d.y&&toY<=d.y);
+    if(!crossed)return false;
+    const dy=toY-fromY;
+    const t=Math.abs(dy)>0.001?(d.y-fromY)/dy:0;
+    const crossX=fromX+(toX-fromX)*t;
+    return crossX>=d.x1-1.5&&crossX<=d.x2+1.5;
   });
 }
 function getRuinZone(x,y){
