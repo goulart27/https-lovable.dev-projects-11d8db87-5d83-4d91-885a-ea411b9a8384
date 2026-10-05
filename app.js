@@ -25,8 +25,9 @@ const BATTLE_QUESTIONS = [
   ["Endpoints","Um computador corporativo conectado à rede é um:",["Endpoint","Gateway","DNS","Switch"],0]
 ];
 
-const AVATARS=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Sentinela Linux","🤖 Sentinela IA","🏹 Arqueiro Zero Trust"];
-const WEAPONS=["⚔️ Espada Firewall","🏹 Arco do Linux","🔱 Lança Cisco","🪄 Cajado IA","🛡️ Escudo Zero Trust","🔮 Lâmina Criptográfica"];
+const AVATARS=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Sentinela Linux","🤖 Sentinela IA","🧭 Guardiã Zero Trust"];
+const AVATAR_META={"🛡️ Cavaleiro Endpoint":{icon:"🛡️",className:"avatar-knight",tag:"ENDPOINT"},"🧙 Maga da Criptografia":{icon:"🧙",className:"avatar-mage",tag:"CRIPTOGRAFIA"},"⚡ Guardião Cisco":{icon:"⚡",className:"avatar-cisco",tag:"CISCO"},"🐧 Sentinela Linux":{icon:"🐧",className:"avatar-linux",tag:"LINUX"},"🤖 Sentinela IA":{icon:"🤖",className:"avatar-ai",tag:"IA"},"🧭 Guardiã Zero Trust":{icon:"🧭",className:"avatar-zero",tag:"ZERO TRUST"}};
+const WEAPONS=["🧱 Escudo Firewall","🏹 Arco do Linux","🔰 Lança Cisco","✨ Núcleo IA","🛡️ Escudo Zero Trust","🔮 Chave Criptográfica"];
 
 const state={
   name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],weapon:WEAPONS[0],
@@ -44,6 +45,10 @@ function toast(message){
 function esc(value){
   return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+function avatarMarkup(name,compact=false){const meta=AVATAR_META[name]||AVATAR_META[AVATARS[0]];return `<div class="avatar-figure ${meta.className} ${compact?"avatar-compact":""}" title="${esc(name)}"><span>${meta.icon}</span><small>${meta.tag}</small></div>`;}
+function avatarChoiceMarkup(name){const meta=AVATAR_META[name]||AVATAR_META[AVATARS[0]];return `<button class="avatar-card" data-avatar="${esc(name)}">${avatarMarkup(name)}<b>${esc(name)}</b><span>${meta.tag}</span></button>`;}
+function createLocalBots(){if(Object.keys(state.players).length>1)return;state.players["Sentinela Bot"]={name:"Sentinela Bot",avatar:AVATARS[2],weapon:WEAPONS[2],x:78,y:18,hp:100,score:0};state.players["Maga Bot"]={name:"Maga Bot",avatar:AVATARS[1],weapon:WEAPONS[3],x:78,y:80,hp:100,score:0};ensureTurn();}
+function scheduleBotTurn(){if(state.connected||state.battleOver||!state.turn||state.turn===state.name)return;const bot=state.players[state.turn];if(!bot||!bot.name.includes("Bot"))return;setTimeout(()=>{if(state.battleOver||state.turn!==bot.name)return;const enemies=Object.values(state.players).filter(p=>p.name!==bot.name&&(p.hp??100)>0);if(!enemies.length)return;const target=enemies.sort((a,b)=>(a.hp??100)-(b.hp??100))[0];if(Math.random()<0.72){target.hp=Math.max(0,target.hp-20);bot.score+=100;if(target.hp===0)bot.score+=200;toast("🤖 "+bot.name+" acertou o desafio.");}else toast("🤖 "+bot.name+" errou o desafio.");advanceTurn();renderArenaState();},900);}
 function supabaseConfig(){
   return {
     url:localStorage.getItem(URL_KEY)||window.CYBERMEDIEVAL_SUPABASE_URL||"",
@@ -106,7 +111,7 @@ function renderQuiz(){
       <div class="choices">${q[2].map((a,i)=>`<button class="choice" data-answer="${i}">${esc(a)}</button>`).join("")}</div>
     </section>
     <section class="panel compact"><div class="grid">
-      <div class="card">🧙 ${esc(state.avatar)}</div><div class="card">⚔️ ${esc(state.weapon)}</div><div class="card">🏆 ${state.score} pontos</div>
+      <div class="card avatar-mini">${avatarMarkup(state.avatar,true)}</div><div class="card">🛡️ ${esc(state.weapon)}</div><div class="card">🏆 ${state.score} pontos</div>
     </div></section>
   </div></main>`;
   document.querySelectorAll("[data-answer]").forEach(btn=>btn.onclick=()=>answer(Number(btn.dataset.answer),q));
@@ -129,11 +134,11 @@ function renderReward(){
   <main class="screen"><div class="shell reward"><section class="panel">
     <div class="brand">✨ RECOMPENSA DESBLOQUEADA</div><h1>Nível ${state.level}</h1>
     <p class="subtitle">Escolha seu avatar e equipamento antes do próximo desafio.</p>
-    <h3>Avatar</h3><div class="choices">${AVATARS.map(a=>`<button class="choice avatarChoice">${a}</button>`).join("")}</div>
+    <h3>Avatar desbloqueado</h3><div class="avatar-grid">${AVATARS.map(a=>avatarChoiceMarkup(a)).join("")}</div>
     <h3>Equipamento</h3><div class="choices">${WEAPONS.map(w=>`<button class="choice weaponChoice">${w}</button>`).join("")}</div>
     <button id="continueGame" class="primary" style="margin-top:16px">Continuar →</button>
   </section></div></main>`;
-  document.querySelectorAll(".avatarChoice").forEach(b=>b.onclick=()=>{state.avatar=b.textContent;toast("Avatar escolhido.")});
+  document.querySelectorAll(".avatar-card").forEach(b=>b.onclick=()=>{state.avatar=b.dataset.avatar;document.querySelectorAll(".avatar-card").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");toast("Avatar escolhido.")});
   document.querySelectorAll(".weaponChoice").forEach(b=>b.onclick=()=>{state.weapon=b.textContent;toast("Equipamento escolhido.")});
   document.getElementById("continueGame").onclick=()=>{state.quizIndex++;renderQuiz()};
 }
@@ -168,7 +173,7 @@ function renderArena(){
       <div class="castle c1"><span>RUÍNA A</span></div><div class="castle c2"><span>RUÍNA B</span></div>
       <div class="wall w1"></div><div class="wall w2"></div>
       <div class="healer">🧙‍♀️<small>CURANDEIRA</small></div>
-      <div class="player selected" id="me">🛡️</div><div id="remotePlayers"></div>
+      <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
     <section class="panel battle-panel">
       <div class="arena-actions"><div><b>Movimentação</b><div class="small">WASD ou setas. A Curandeira recupera HP quando você se aproxima.</div></div>
@@ -189,7 +194,7 @@ function renderArenaState(){
   const me=document.getElementById("me");
   if(me){me.style.left=state.position.x+"%";me.style.top=state.position.y+"%";me.style.bottom="auto";}
   const remote=document.getElementById("remotePlayers");
-  if(remote)remote.innerHTML=Object.values(state.players).filter(p=>p.name!==state.name&&(p.hp??100)>0).map(p=>`<button class="player remote ${state.target===p.name?"targeted":""}" style="left:${p.x||50}%;top:${p.y||50}%" onclick="selectTarget('${esc(p.name)}')">⚡</button>`).join("");
+  if(remote)remote.innerHTML=Object.values(state.players).filter(p=>p.name!==state.name&&(p.hp??100)>0).map(p=>`<button class="player remote ${state.target===p.name?"targeted":""}" style="left:${p.x||50}%;top:${p.y||50}%" onclick="selectTarget('${esc(p.name)}')">${avatarMarkup(p.avatar||AVATARS[0],true)}</button>`).join("");
   const targets=document.getElementById("targets");
   if(targets){
     const enemies=Object.values(state.players).filter(p=>p.name!==state.name&&(p.hp??100)>0);
@@ -231,6 +236,7 @@ function advanceTurn(){
   if(alive.length<=1){state.battleOver=true;state.turn=alive[0]||null;return;}
   const current=alive.indexOf(state.turn);state.turn=alive[(current+1+alive.length)%alive.length];
   state.battleIndex=(state.battleIndex+1)%BATTLE_QUESTIONS.length;if(state.battleIndex===0&&state.level<10){state.level++;state.battleRound++;toast("⬆️ Nível "+state.level+" desbloqueado!");}state.target=null;
+  if(!state.connected)scheduleBotTurn();
 }
 function resolveBattle(answerIndex){
   if(state.battleOver||!isMyTurn()||!state.target||state.turnBusy)return;
@@ -270,7 +276,7 @@ function broadcast(event,payload){
 
 async function connectRealtime(){
   const cfg=supabaseConfig();
-  if(!cfg.url||!cfg.key||!window.supabase){toast("🟡 Modo local. Configure o Supabase no lobby para multiplayer.");return;}
+  if(!cfg.url||!cfg.key||!window.supabase){createLocalBots();toast("🟡 Arena local ativada: 2 sentinelas controladas pela IA.");renderArenaState();scheduleBotTurn();return;}
   try{
     state.channel=window.supabase.channel("cybermedieval:"+state.room,{config:{presence:{key:state.name},broadcast:{self:false}}});
     state.channel.on("presence",{event:"sync"},()=>{
