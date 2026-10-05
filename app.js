@@ -24,6 +24,7 @@ const state={
 };
 
 const app=document.getElementById("app");
+const CONFIG_KEY_URL="cms_supabase_url"; const CONFIG_KEY_ANON="cms_supabase_key";
 
 function toast(message){
   const el=document.createElement("div");
@@ -248,9 +249,9 @@ function bindMovement(){
 }
 
 async function connectRealtime(){
-  const URL=window.CYBERMEDIEVAL_SUPABASE_URL||"";
-  const KEY=window.CYBERMEDIEVAL_SUPABASE_KEY||"";
-  if(!URL||!KEY||!window.supabase){return;}
+  const URL=localStorage.getItem(CONFIG_KEY_URL)||window.CYBERMEDIEVAL_SUPABASE_URL||"";
+  const KEY=localStorage.getItem(CONFIG_KEY_ANON)||window.CYBERMEDIEVAL_SUPABASE_KEY||"";
+  if(!URL||!KEY||!window.supabase){toast("🟡 Modo local: configure o Supabase no lobby para ativar o multiplayer.");return;}
 
   try{
     state.channel=window.supabase.channel("cybermedieval:"+state.room,{config:{presence:{key:state.name}}});
