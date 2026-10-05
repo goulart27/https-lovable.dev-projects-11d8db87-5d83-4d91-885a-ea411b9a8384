@@ -31,7 +31,7 @@ const WEAPONS=["⚔️ Espada Firewall","🏹 Arco do Linux","🔱 Lança Cisco"
 const state={
   name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],weapon:WEAPONS[0],
   hp:100,position:{x:15,y:82},players:{},turn:null,target:null,channel:null,connected:false,
-  battleIndex:0,battleOver:false,turnBusy:false,configSaved:false
+  battleIndex:0,battleRound:0,battleOver:false,turnBusy:false,configSaved:false
 };
 
 const app=document.getElementById("app");
@@ -155,11 +155,11 @@ function ensureTurn(){
 function isMyTurn(){return state.turn===state.name;}
 
 function renderArena(){
-  state.battleOver=false;state.battleIndex=0;state.target=null;state.turnBusy=false;
+  state.level=6;state.battleOver=false;state.battleIndex=0;state.battleRound=0;state.target=null;state.turnBusy=false;
   state.players={[state.name]:localPlayer()};state.turn=state.name;
   app.innerHTML=`
   <main class="screen"><div class="shell">
-    <div class="topbar"><div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2>Níveis 6–10 · Batalha de conhecimento</h2></div><span class="pill" id="connectionStatus">🟡 Local</span></div>
+    <div class="topbar"><div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2 id="arenaTitle">Nível ${state.level} · Batalha de conhecimento</h2></div><span class="pill" id="connectionStatus">🟡 Local</span></div>
     <div class="hud">
       <span class="pill">👥 <b id="playerCount">1</b>/6</span><span class="pill">❤️ HP <b id="hpValue">100</b>/100</span>
       <span class="pill">⭐ <b id="scoreValue">${state.score}</b></span><span class="pill">🎯 Turno: <b id="turnValue">${esc(state.turn)}</b></span>
@@ -184,7 +184,7 @@ function renderArena(){
 function renderArenaState(){
   normalizePlayers();ensureTurn();
   const count=Object.keys(state.players).length;
-  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.textContent=value};
+  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.textContent=value};const title=document.getElementById("arenaTitle");if(title)title.textContent="Nível "+state.level+" · Batalha de conhecimento";
   set("playerCount",count);set("hpValue",state.hp);set("scoreValue",state.score);set("turnValue",state.turn||"—");
   const me=document.getElementById("me");
   if(me){me.style.left=state.position.x+"%";me.style.top=state.position.y+"%";me.style.bottom="auto";}
@@ -230,7 +230,7 @@ function advanceTurn(){
   const alive=aliveNames();
   if(alive.length<=1){state.battleOver=true;state.turn=alive[0]||null;return;}
   const current=alive.indexOf(state.turn);state.turn=alive[(current+1+alive.length)%alive.length];
-  state.battleIndex=(state.battleIndex+1)%BATTLE_QUESTIONS.length;state.target=null;
+  state.battleIndex=(state.battleIndex+1)%BATTLE_QUESTIONS.length;if(state.battleIndex===0&&state.level<10){state.level++;state.battleRound++;toast("⬆️ Nível "+state.level+" desbloqueado!");}state.target=null;
 }
 function resolveBattle(answerIndex){
   if(state.battleOver||!isMyTurn()||!state.target||state.turnBusy)return;
@@ -241,13 +241,13 @@ function resolveBattle(answerIndex){
     state.score+=150;target.hp=Math.max(0,target.hp-25);toast("⚡ Acerto! -25 HP e +150 pontos.");
     if(target.hp===0){state.score+=250;toast("🏆 Adversário derrotado! +250 pontos.");}
   }else toast("🧠 Resposta incorreta. O turno passa.");
-  syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:state.target,battleIndex:state.battleIndex});
+  syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:state.target,battleIndex:state.battleIndex,level:state.level});
   setTimeout(()=>{
     if(!state.battleOver){
       advanceTurn();
       state.turnBusy=false;
       syncSelf();
-      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,battleOver:state.battleOver});
+      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,level:state.level,battleOver:state.battleOver});
       renderArenaState();
     } else {
       state.turnBusy=false;
@@ -288,7 +288,7 @@ async function connectRealtime(){
       if(payload?.players){
         const merged={...state.players,...payload.players};state.players=merged;
         if(payload.turn)state.turn=payload.turn;
-        if(Number.isInteger(payload.battleIndex))state.battleIndex=payload.battleIndex;
+        if(Number.isInteger(payload.battleIndex))state.battleIndex=payload.battleIndex;if(Number.isInteger(payload.level))state.level=payload.level;
         if(typeof payload.battleOver==="boolean")state.battleOver=payload.battleOver;
         state.target=null;state.turnBusy=false;renderArenaState();
       }
