@@ -227,7 +227,8 @@ function movePlayer(dx,dy){
 window.movePlayer=movePlayer;
 
 function advanceTurn(){
-  const alive=aliveNames();if(!alive.length){state.battleOver=true;return;}
+  const alive=aliveNames();
+  if(alive.length<=1){state.battleOver=true;state.turn=alive[0]||null;return;}
   const current=alive.indexOf(state.turn);state.turn=alive[(current+1+alive.length)%alive.length];
   state.battleIndex=(state.battleIndex+1)%BATTLE_QUESTIONS.length;state.target=null;
 }
@@ -242,7 +243,19 @@ function resolveBattle(answerIndex){
   }else toast("🧠 Resposta incorreta. O turno passa.");
   syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:state.target,battleIndex:state.battleIndex});
   setTimeout(()=>{
-    if(!state.battleOver){advanceTurn();state.turnBusy=false;syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex});renderArenaState();}
+    if(!state.battleOver){
+      advanceTurn();
+      state.turnBusy=false;
+      syncSelf();
+      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,battleOver:state.battleOver});
+      renderArenaState();
+    } else {
+      state.turnBusy=false;
+      syncSelf();
+      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,battleOver:true});
+      renderArenaState();
+      toast("🏆 Batalha encerrada!");
+    }
   },700);
 }
 window.resolveBattle=resolveBattle;
@@ -262,9 +275,9 @@ async function connectRealtime(){
     state.channel=window.supabase.channel("cybermedieval:"+state.room,{config:{presence:{key:state.name},broadcast:{self:false}}});
     state.channel.on("presence",{event:"sync"},()=>{
       const presence=state.channel.presenceState();
-      const next={};
-      Object.values(presence).flat().forEach(p=>{if(p.name)next[p.name]=p;});
-      if(next[state.name]){next[state.name]={...next[state.name],...localPlayer()};}
+      const next={...state.players};
+      Object.values(presence).flat().forEach(p=>{if(p.name)next[p.name]={...(next[p.name]||{}),...p};});
+      next[state.name]={...(next[state.name]||{}),...localPlayer()};
       state.players=Object.fromEntries(Object.values(next).slice(0,6).map(p=>[p.name,p]));
       ensureTurn();renderArenaState();
     });
@@ -276,6 +289,7 @@ async function connectRealtime(){
         const merged={...state.players,...payload.players};state.players=merged;
         if(payload.turn)state.turn=payload.turn;
         if(Number.isInteger(payload.battleIndex))state.battleIndex=payload.battleIndex;
+        if(typeof payload.battleOver==="boolean")state.battleOver=payload.battleOver;
         state.target=null;state.turnBusy=false;renderArenaState();
       }
     });
