@@ -33,12 +33,25 @@ const RUIN_COLLIDERS=[
   {x:8,y:12,w:24,h:3},{x:8,y:12,w:3,h:25},{x:29,y:12,w:3,h:25},{x:8,y:34,w:10,h:3},{x:24,y:34,w:8,h:3},
   {x:68,y:12,w:24,h:3},{x:68,y:12,w:3,h:25},{x:89,y:12,w:3,h:25},{x:68,y:34,w:9,h:3},{x:83,y:34,w:9,h:3},
   {x:32,y:63,w:32,h:3},{x:32,y:63,w:3,h:28},{x:61,y:63,w:3,h:28},{x:32,y:88,w:14,h:3},{x:52,y:88,w:12,h:3},
-  {x:30,y:25,w:17,h:3},{x:53,y:25,w:17,h:3},{x:74,y:53,w:20,h:3}
+  {x:30,y:25,w:17,h:3},{x:53,y:25,w:17,h:3},{x:74,y:53,w:20,h:3},
+  {x:16,y:21,w:7,h:2},{x:16,y:29,w:13,h:2},{x:21,y:21,w:2,h:10},
+  {x:76,y:21,w:8,h:2},{x:76,y:29,w:13,h:2},{x:84,y:21,w:2,h:10},
+  {x:39,y:70,w:18,h:2},{x:39,y:80,w:18,h:2},{x:47,y:70,w:2,h:12}
+];
+const RUIN_ZONES=[
+  {id:"tower",name:"Torre Norte",x:10,y:14,w:20,h:19},
+  {id:"citadel",name:"Cidadela Leste",x:70,y:14,w:20,h:19},
+  {id:"underground",name:"Salão Subterrâneo",x:34,y:65,w:26,h:22}
+];
+const ENCOUNTER_POINTS=[
+  {id:"crypt",x:20,y:27,label:"Câmara da Criptografia"},
+  {id:"ai",x:80,y:27,label:"Observatório IA"},
+  {id:"network",x:48,y:76,label:"Núcleo de Redes"}
 ];
 const state={
   name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],weapon:WEAPONS[0],
   hp:100,position:{x:15,y:82},players:{},turn:null,target:null,channel:null,connected:false,
-  battleIndex:0,battleRound:0,battleOver:false,turnBusy:false,configSaved:false
+  battleIndex:0,battleRound:0,battleOver:false,turnBusy:false,configSaved:false,zone:"campo",lastEncounter:"",botTimer:null
 };
 
 const app=document.getElementById("app");
@@ -101,7 +114,7 @@ function renderLobby(){
     state.name=document.getElementById("playerName").value.trim()||"Jogador";
     state.room=document.getElementById("roomCode").value.trim()||"CASTELO-01";
     state.level=1;state.quizIndex=0;state.score=0;state.xp=0;state.hp=100;
-    state.position={x:15,y:82};state.target=null;state.battleOver=false;state.turnBusy=false;
+    state.position={x:15,y:82};state.target=null;state.battleOver=false;state.turnBusy=false;state.zone="campo";state.lastEncounter="";
     renderQuiz();
   };
 }
@@ -176,11 +189,12 @@ function renderArena(){
       <span class="pill">⭐ <b id="scoreValue">${state.score}</b></span><span class="pill">🎯 Turno: <b id="turnValue">${esc(state.turn)}</b></span>
     </div>
     <div class="arena battlefield" id="battlefield">
-      <div class="ruin ruin-a"><div class="ruin-title">🏰 TORRE NORTE</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr1"></i><i class="crack cr2"></i></div>
-      <div class="ruin ruin-b"><div class="ruin-title">🏰 CIDADELA LESTE</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr3"></i><i class="crack cr4"></i></div>
-      <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-door">ENTRADA</div><i class="crack cr5"></i></div>
+      <div class="ruin ruin-a"><div class="ruin-title">🏰 TORRE NORTE</div><div class="ruin-floor"></div><div class="ruin-room room-a1">CÂMARA DA CRIPTOGRAFIA</div><div class="ruin-corridor corridor-a"></div><div class="ruin-door">ENTRADA</div><i class="crack cr1"></i><i class="crack cr2"></i></div>
+      <div class="ruin ruin-b"><div class="ruin-title">🏰 CIDADELA LESTE</div><div class="ruin-floor"></div><div class="ruin-room room-b1">OBSERVATÓRIO IA</div><div class="ruin-corridor corridor-b"></div><div class="ruin-door">ENTRADA</div><i class="crack cr3"></i><i class="crack cr4"></i></div>
+      <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-room room-c1">NÚCLEO DE REDES</div><div class="ruin-corridor corridor-c"></div><div class="ruin-door">ENTRADA</div><i class="crack cr5"></i></div>
+      <div class="encounter-point ep-a" title="Câmara da Criptografia">✦</div><div class="encounter-point ep-b" title="Observatório IA">✦</div><div class="encounter-point ep-c" title="Núcleo de Redes">✦</div>
       <div class="wall w1"></div><div class="wall w2"></div>
-      <div class="map-sign">🚪 Entre nas ruínas · explore · encontre outros jogadores</div>
+      <div class="map-sign">🚪 Entre nas ruínas · explore salas · encontre jogadores</div>
       <div class="healer">🧙‍♀️<small>CURANDEIRA</small></div>
       <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
@@ -239,16 +253,32 @@ function collidesWithRuins(x,y){
     return Math.hypot(x-nearestX,y-nearestY)<radius;
   });
 }
+function getRuinZone(x,y){
+  const z=RUIN_ZONES.find(r=>x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h);
+  return z?.id||"campo";
+}
+function checkExploration(){
+  const zone=getRuinZone(state.position.x,state.position.y);
+  if(zone!==state.zone){
+    state.zone=zone;
+    const labels={tower:"🏰 Você entrou na Torre Norte.",citadel:"🏰 Você entrou na Cidadela Leste.",underground:"🏰 Você entrou no Salão Subterrâneo.",campo:"🌿 Você voltou ao pátio das ruínas."};
+    toast(labels[zone]);
+  }
+  const encounter=ENCOUNTER_POINTS.find(p=>Math.hypot(state.position.x-p.x,state.position.y-p.y)<5);
+  if(encounter&&state.lastEncounter!==encounter.id){
+    state.lastEncounter=encounter.id;
+    toast("✦ Ponto de encontro: "+encounter.label);
+  }
+  if(!encounter)state.lastEncounter="";
+}
 function movePlayer(dx,dy){
   if(state.battleOver)return;
   const nx=Math.max(5,Math.min(95,state.position.x+dx));
   const ny=Math.max(5,Math.min(95,state.position.y+dy));
-  if(collidesWithRuins(nx,ny)){toast("🏚️ Muro da ruína bloqueado. Procure uma entrada.");return;}
+  if(collidesWithRuins(nx,ny)){toast("🏚️ Muro bloqueado. Procure uma entrada ou corredor.");return;}
   state.position.x=nx;state.position.y=ny;
   if(Math.hypot(state.position.x-50,state.position.y-45)<12&&state.hp<100){state.hp=Math.min(100,state.hp+20);toast("🧙‍♀️ Curandeira restaurou +20 HP");}
-  if(state.position.x<32&&state.position.y<38)toast("🏰 Você entrou na Torre Norte.");
-  else if(state.position.x>67&&state.position.y<38)toast("🏰 Você entrou na Cidadela Leste.");
-  else if(state.position.x>31&&state.position.x<65&&state.position.y>63)toast("🏰 Você entrou no Salão Subterrâneo.");
+  checkExploration();
   syncSelf();broadcast("player_state",localPlayer());renderArenaState();
 }
 window.movePlayer=movePlayer;
@@ -304,7 +334,9 @@ async function connectRealtime(){
     state.channel.on("presence",{event:"sync"},()=>{
       const presence=state.channel.presenceState();
       const next={...state.players};
-      Object.values(presence).flat().forEach(p=>{if(p.name)next[p.name]={...(next[p.name]||{}),...p};});
+      Object.values(presence).flat().forEach(p=>{
+        if(p.name&&p.name!==state.name)next[p.name]={...(next[p.name]||{}),...p};
+      });
       next[state.name]={...(next[state.name]||{}),...localPlayer()};
       state.players=Object.fromEntries(Object.values(next).slice(0,6).map(p=>[p.name,p]));
       ensureTurn();renderArenaState();
@@ -314,7 +346,12 @@ async function connectRealtime(){
     });
     state.channel.on("broadcast",{event:"battle_state"},({payload})=>{
       if(payload?.players){
-        const merged={...state.players,...payload.players};state.players=merged;
+        const merged={...state.players};
+        Object.values(payload.players).forEach(p=>{
+          if(p?.name&&p.name!==state.name)merged[p.name]={...(merged[p.name]||{}),...p};
+        });
+        merged[state.name]=localPlayer();
+        state.players=merged;
         if(payload.turn)state.turn=payload.turn;
         if(Number.isInteger(payload.battleIndex))state.battleIndex=payload.battleIndex;if(Number.isInteger(payload.level))state.level=payload.level;
         if(typeof payload.battleOver==="boolean")state.battleOver=payload.battleOver;
