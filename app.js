@@ -189,9 +189,9 @@ function renderArena(){
       <span class="pill">⭐ <b id="scoreValue">${state.score}</b></span><span class="pill">🎯 Turno: <b id="turnValue">${esc(state.turn)}</b></span>
     </div>
     <div class="arena battlefield" id="battlefield">
-      <div class="ruin ruin-a"><div class="ruin-title">🏰 TORRE NORTE</div><div class="ruin-floor"></div><div class="ruin-room room-a1">CÂMARA DA CRIPTOGRAFIA</div><div class="ruin-corridor corridor-a"></div><div class="ruin-door">ENTRADA</div><i class="crack cr1"></i><i class="crack cr2"></i></div>
-      <div class="ruin ruin-b"><div class="ruin-title">🏰 CIDADELA LESTE</div><div class="ruin-floor"></div><div class="ruin-room room-b1">OBSERVATÓRIO IA</div><div class="ruin-corridor corridor-b"></div><div class="ruin-door">ENTRADA</div><i class="crack cr3"></i><i class="crack cr4"></i></div>
-      <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-room room-c1">NÚCLEO DE REDES</div><div class="ruin-corridor corridor-c"></div><div class="ruin-door">ENTRADA</div><i class="crack cr5"></i></div>
+      <div class="ruin ruin-a"><div class="ruin-title">🏰 TORRE NORTE</div><div class="ruin-floor"></div><div class="ruin-room room-a1">CÂMARA DA CRIPTOGRAFIA</div><div class="ruin-corridor corridor-a"></div><button class="ruin-door" onclick="enterRuin("tower")">ENTRADA · ENTRAR</button><i class="crack cr1"></i><i class="crack cr2"></i></div>
+      <div class="ruin ruin-b"><div class="ruin-title">🏰 CIDADELA LESTE</div><div class="ruin-floor"></div><div class="ruin-room room-b1">OBSERVATÓRIO IA</div><div class="ruin-corridor corridor-b"></div><button class="ruin-door" onclick="enterRuin("citadel")">ENTRADA · ENTRAR</button><i class="crack cr3"></i><i class="crack cr4"></i></div>
+      <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-room room-c1">NÚCLEO DE REDES</div><div class="ruin-corridor corridor-c"></div><button class="ruin-door" onclick="enterRuin("underground")">ENTRADA · ENTRAR</button><i class="crack cr5"></i></div>
       <div class="encounter-point ep-a" title="Câmara da Criptografia">✦</div><div class="encounter-point ep-b" title="Observatório IA">✦</div><div class="encounter-point ep-c" title="Núcleo de Redes">✦</div>
       <div class="wall w1"></div><div class="wall w2"></div>
       <div class="map-sign">🚪 Entre nas ruínas · explore salas · encontre jogadores</div>
@@ -268,6 +268,22 @@ function canUseRuinDoor(fromX,fromY,toX,toY){
     return crossX>=d.x1-1.5&&crossX<=d.x2+1.5;
   });
 }
+function enterRuin(id){
+  const entries={
+    tower:{x:20,y:27,label:"🏰 Torre Norte"},
+    citadel:{x:80,y:27,label:"🏰 Cidadela Leste"},
+    underground:{x:48,y:76,label:"🏰 Salão Subterrâneo"}
+  };
+  const entry=entries[id];
+  if(!entry||state.battleOver)return;
+  state.position={x:entry.x,y:entry.y};
+  state.zone=id;
+  state.lastEncounter="";
+  toast("🚪 Você entrou em "+entry.label+"!");
+  syncSelf();broadcast("player_state",localPlayer());renderArenaState();
+}
+window.enterRuin=enterRuin;
+
 function getRuinZone(x,y){
   const z=RUIN_ZONES.find(r=>x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h);
   return z?.id||"campo";
