@@ -286,11 +286,33 @@ function checkExploration(){
   }
   if(!encounter)state.lastEncounter="";
 }
+function getDoorTransition(fromX,fromY,toX,toY){
+  const doors=[
+    {x1:15,x2:27,y:37,insideY:31},
+    {x1:73,x2:87,y:37,insideY:31},
+    {x1:42,x2:54,y:63,insideY:69}
+  ];
+  for(const d of doors){
+    const crossed=(fromY<d.y&&toY>=d.y)||(fromY>d.y&&toY<=d.y);
+    if(!crossed)continue;
+    const dy=toY-fromY;
+    const t=Math.abs(dy)>0.001?(d.y-fromY)/dy:0;
+    const crossX=fromX+(toX-fromX)*t;
+    if(crossX>=d.x1&&crossX<=d.x2){
+      return {x:Math.max(d.x1+2,Math.min(d.x2-2,toX)),y:d.insideY};
+    }
+  }
+  return null;
+}
 function movePlayer(dx,dy){
   if(state.battleOver)return;
-  const nx=Math.max(5,Math.min(95,state.position.x+dx));
-  const ny=Math.max(5,Math.min(95,state.position.y+dy));
-  if(collidesWithRuins(nx,ny)&&!canUseRuinDoor(state.position.x,state.position.y,nx,ny)){
+  let nx=Math.max(5,Math.min(95,state.position.x+dx));
+  let ny=Math.max(5,Math.min(95,state.position.y+dy));
+  const door=getDoorTransition(state.position.x,state.position.y,nx,ny);
+  if(door){
+    nx=door.x;ny=door.y;
+    toast("🚪 Entrada encontrada! Você entrou na ruína.");
+  }else if(collidesWithRuins(nx,ny)){
     toast("🏚️ Muro bloqueado. Procure a entrada dourada da ruína.");
     return;
   }
