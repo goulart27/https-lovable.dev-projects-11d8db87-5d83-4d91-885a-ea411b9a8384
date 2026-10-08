@@ -16,7 +16,7 @@ const QUESTIONS = [
   ["Redes","Qual protocolo atribui IP automaticamente?",["DHCP","SMTP","SSH","ICMP"],0]
 ];
 
-const BATTLE_QUESTIONS = [
+const CHALLENGE_QUESTIONS = [
   ["Linux","Qual comando mostra o diretório atual?",["pwd","rm","mkdir","touch"],0],
   ["Redes","Qual dispositivo encaminha pacotes entre redes?",["Roteador","Monitor","Teclado","Hub USB"],0],
   ["Segurança","Qual recurso adiciona uma segunda etapa de autenticação?",["MFA","FTP","NAT","DNS"],0],
@@ -25,9 +25,9 @@ const BATTLE_QUESTIONS = [
   ["Endpoints","Um computador corporativo conectado à rede é um:",["Endpoint","Gateway","DNS","Switch"],0]
 ];
 
-const AVATARS=["🛡️ Cavaleiro Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Sentinela Linux","🤖 Sentinela IA","🧭 Guardiã Zero Trust"];
-const AVATAR_META={"🛡️ Cavaleiro Endpoint":{icon:"🛡️",className:"avatar-knight",tag:"ENDPOINT"},"🧙 Maga da Criptografia":{icon:"🧙",className:"avatar-mage",tag:"CRIPTOGRAFIA"},"⚡ Guardião Cisco":{icon:"⚡",className:"avatar-cisco",tag:"CISCO"},"🐧 Sentinela Linux":{icon:"🐧",className:"avatar-linux",tag:"LINUX"},"🤖 Sentinela IA":{icon:"🤖",className:"avatar-ai",tag:"IA"},"🧭 Guardiã Zero Trust":{icon:"🧭",className:"avatar-zero",tag:"ZERO TRUST"}};
-const WEAPONS=["🧱 Escudo Firewall","🏹 Arco do Linux","🔰 Lança Cisco","✨ Núcleo IA","🛡️ Escudo Zero Trust","🔮 Chave Criptográfica"];
+const AVATARS=["🛡️ Guardião Endpoint","🧙 Maga da Criptografia","⚡ Guardião Cisco","🐧 Sentinela Linux","🤖 Sentinela IA","🧭 Guardiã Zero Trust"];
+const AVATAR_META={"🛡️ Guardião Endpoint":{icon:"🛡️",className:"avatar-knight",tag:"ENDPOINT"},"🧙 Maga da Criptografia":{icon:"🧙",className:"avatar-mage",tag:"CRIPTOGRAFIA"},"⚡ Guardião Cisco":{icon:"⚡",className:"avatar-cisco",tag:"CISCO"},"🐧 Sentinela Linux":{icon:"🐧",className:"avatar-linux",tag:"LINUX"},"🤖 Sentinela IA":{icon:"🤖",className:"avatar-ai",tag:"IA"},"🧭 Guardiã Zero Trust":{icon:"🧭",className:"avatar-zero",tag:"ZERO TRUST"}};
+const BADGES=["🧱 Guardião Firewall","🐧 Explorador Linux","🌐 Especialista Cisco","✨ Investigador IA","🛡️ Defensor Zero Trust","🔐 Mestre da Criptografia"];
 
 const RUIN_COLLIDERS=[
   {x:8,y:12,w:24,h:3},{x:8,y:12,w:3,h:25},{x:29,y:12,w:3,h:25},{x:8,y:34,w:10,h:3},{x:24,y:34,w:8,h:3},
@@ -49,9 +49,9 @@ const ENCOUNTER_POINTS=[
   {id:"network",x:48,y:76,label:"Núcleo de Redes"}
 ];
 const state={
-  name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],weapon:WEAPONS[0],
+  name:"",room:"CASTELO-01",level:1,quizIndex:0,xp:0,score:0,avatar:AVATARS[0],badge:BADGES[0],
   hp:100,position:{x:15,y:82},players:{},turn:null,target:null,channel:null,connected:false,
-  battleIndex:0,battleRound:0,battleOver:false,turnBusy:false,configSaved:false,zone:"campo",lastEncounter:"",botTimer:null
+  challengeIndex:0,challengeRound:0,challengeOver:false,challengeBusy:false,configSaved:false,zone:"campo",lastEncounter:"",botTimer:null
 };
 
 const app=document.getElementById("app");
@@ -66,8 +66,8 @@ function esc(value){
 }
 function avatarMarkup(name,compact=false){const meta=AVATAR_META[name]||AVATAR_META[AVATARS[0]];return `<div class="avatar-figure ${meta.className} ${compact?"avatar-compact":""}" title="${esc(name)}"><span>${meta.icon}</span><small>${meta.tag}</small></div>`;}
 function avatarChoiceMarkup(name){const meta=AVATAR_META[name]||AVATAR_META[AVATARS[0]];return `<button class="avatar-card" data-avatar="${esc(name)}">${avatarMarkup(name)}<b>${esc(name)}</b><span>${meta.tag}</span></button>`;}
-function createLocalBots(){if(Object.keys(state.players).length>1)return;state.players["Sentinela Bot"]={name:"Sentinela Bot",avatar:AVATARS[2],weapon:WEAPONS[2],x:78,y:18,hp:100,score:0};state.players["Maga Bot"]={name:"Maga Bot",avatar:AVATARS[1],weapon:WEAPONS[3],x:78,y:80,hp:100,score:0};ensureTurn();}
-function scheduleBotTurn(){if(state.connected||state.battleOver||!state.turn||state.turn===state.name)return;const bot=state.players[state.turn];if(!bot||!bot.name.includes("Bot"))return;setTimeout(()=>{if(state.battleOver||state.turn!==bot.name)return;const enemies=Object.values(state.players).filter(p=>p.name!==bot.name&&(p.hp??100)>0);if(!enemies.length)return;const target=enemies.sort((a,b)=>(a.hp??100)-(b.hp??100))[0];if(Math.random()<0.72){target.hp=Math.max(0,target.hp-20);bot.score+=100;if(target.hp===0)bot.score+=200;toast("🤖 "+bot.name+" acertou o desafio.");}else toast("🤖 "+bot.name+" errou o desafio.");advanceTurn();renderArenaState();},900);}
+function createLocalBots(){if(Object.keys(state.players).length>1)return;state.players["Sentinela Bot"]={name:"Sentinela Bot",avatar:AVATARS[2],badge:BADGES[2],x:78,y:18,hp:100,score:0};state.players["Maga Bot"]={name:"Maga Bot",avatar:AVATARS[1],badge:BADGES[3],x:78,y:80,hp:100,score:0};ensureTurn();}
+function scheduleBotTurn(){if(state.connected||state.challengeOver||!state.turn||state.turn===state.name)return;const bot=state.players[state.turn];if(!bot||!bot.name.includes("Bot"))return;setTimeout(()=>{if(state.challengeOver||state.turn!==bot.name)return;const enemies=Object.values(state.players).filter(p=>p.name!==bot.name&&(p.hp??100)>0);if(!enemies.length)return;const target=enemies.sort((a,b)=>(a.hp??100)-(b.hp??100))[0];if(Math.random()<0.72){target.hp=Math.max(0,target.hp-20);bot.score+=100;if(target.hp===0)bot.score+=200;toast("🤖 "+bot.name+" acertou o desafio.");}else toast("🤖 "+bot.name+" errou o desafio.");advanceTurn();renderArenaState();},900);}
 function supabaseConfig(){
   return {
     url:localStorage.getItem(URL_KEY)||window.CYBERMEDIEVAL_SUPABASE_URL||"",
@@ -94,7 +94,7 @@ function renderLobby(){
       <div class="brand">🏰 LOBBY</div><h2>Entrar no Reino</h2>
       <label>Nome do jogador</label><input id="playerName" placeholder="Digite seu nome" autocomplete="off">
       <label>Código da sala</label><input id="roomCode" value="CASTELO-01" autocomplete="off">
-      <button id="startGame" class="primary full">Entrar na aventura</button>
+      <button id="startGame" class="primary full">Entrar na aventura</button><button id="demoGame" class="secondary full">▶ Testar demonstração</button>
       <p class="small">Níveis 1–5: Academia • Níveis 6–10: Arena multiplayer</p>
       <details class="config"><summary>⚙ Configurar Supabase Realtime</summary>
         <label>Project URL</label><input id="supabaseUrl" value="${esc(cfg.url)}" placeholder="https://seu-projeto.supabase.co">
@@ -110,11 +110,12 @@ function renderLobby(){
     localStorage.setItem(KEY_KEY,document.getElementById("supabaseKey").value.trim());
     state.configSaved=true; toast("✅ Configuração salva neste navegador.");
   };
+  document.getElementById("demoGame").onclick=()=>{document.getElementById("playerName").value="Visitante";document.getElementById("roomCode").value="DEMO";document.getElementById("startGame").click()};
   document.getElementById("startGame").onclick=()=>{
     state.name=document.getElementById("playerName").value.trim()||"Jogador";
     state.room=document.getElementById("roomCode").value.trim()||"CASTELO-01";
     state.level=1;state.quizIndex=0;state.score=0;state.xp=0;state.hp=100;
-    state.position={x:15,y:82};state.target=null;state.battleOver=false;state.turnBusy=false;state.zone="campo";state.lastEncounter="";
+    state.position={x:15,y:82};state.target=null;state.challengeOver=false;state.challengeBusy=false;state.zone="campo";state.lastEncounter="";
     renderQuiz();
   };
 }
@@ -130,7 +131,7 @@ function renderQuiz(){
       <div class="choices">${q[2].map((a,i)=>`<button class="choice" data-answer="${i}">${esc(a)}</button>`).join("")}</div>
     </section>
     <section class="panel compact"><div class="grid">
-      <div class="card avatar-mini">${avatarMarkup(state.avatar,true)}</div><div class="card">🛡️ ${esc(state.weapon)}</div><div class="card">🏆 ${state.score} pontos</div>
+      <div class="card avatar-mini">${avatarMarkup(state.avatar,true)}</div><div class="card">🛡️ ${esc(state.badge)}</div><div class="card">🏆 ${state.score} pontos</div>
     </div></section>
   </div></main>`;
   document.querySelectorAll("[data-answer]").forEach(btn=>btn.onclick=()=>answer(Number(btn.dataset.answer),q));
@@ -152,18 +153,18 @@ function renderReward(){
   app.innerHTML=`
   <main class="screen"><div class="shell reward"><section class="panel">
     <div class="brand">✨ RECOMPENSA DESBLOQUEADA</div><h1>Nível ${state.level}</h1>
-    <p class="subtitle">Escolha seu avatar e equipamento antes do próximo desafio.</p>
+    <p class="subtitle">Escolha seu avatar e insígnia digital antes do próximo desafio.</p>
     <h3>Avatar desbloqueado</h3><div class="avatar-grid">${AVATARS.map(a=>avatarChoiceMarkup(a)).join("")}</div>
-    <h3>Equipamento</h3><div class="choices">${WEAPONS.map(w=>`<button class="choice weaponChoice">${w}</button>`).join("")}</div>
+    <h3>Insígnia digital</h3><div class="choices">${BADGES.map(w=>`<button class="choice badgeChoice">${w}</button>`).join("")}</div>
     <button id="continueGame" class="primary" style="margin-top:16px">Continuar →</button>
   </section></div></main>`;
   document.querySelectorAll(".avatar-card").forEach(b=>b.onclick=()=>{state.avatar=b.dataset.avatar;document.querySelectorAll(".avatar-card").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");toast("Avatar escolhido.")});
-  document.querySelectorAll(".weaponChoice").forEach(b=>b.onclick=()=>{state.weapon=b.textContent;toast("Equipamento escolhido.")});
+  document.querySelectorAll(".badgeChoice").forEach(b=>b.onclick=()=>{state.badge=b.textContent;toast("Insígnia digital escolhido.")});
   document.getElementById("continueGame").onclick=()=>{state.quizIndex++;renderQuiz()};
 }
 
 function localPlayer(){
-  return {name:state.name,score:state.score,hp:state.hp,x:state.position.x,y:state.position.y,avatar:state.avatar,weapon:state.weapon};
+  return {name:state.name,score:state.score,hp:state.hp,x:state.position.x,y:state.position.y,avatar:state.avatar,badge:state.badge};
 }
 function normalizePlayers(){
   const list=Object.values(state.players).filter(p=>p&&p.name).slice(0,6);
@@ -179,11 +180,11 @@ function ensureTurn(){
 function isMyTurn(){return state.turn===state.name;}
 
 function renderArena(){
-  state.level=6;state.battleOver=false;state.battleIndex=0;state.battleRound=0;state.target=null;state.turnBusy=false;
+  state.level=6;state.challengeOver=false;state.challengeIndex=0;state.challengeRound=0;state.target=null;state.challengeBusy=false;
   state.players={[state.name]:localPlayer()};state.turn=state.name;
   app.innerHTML=`
   <main class="screen"><div class="shell">
-    <div class="topbar"><div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2 id="arenaTitle">Nível ${state.level} · Batalha de conhecimento</h2></div><span class="pill" id="connectionStatus">🟡 Local</span></div>
+    <div class="topbar"><div><div class="brand">🏟 ARENA CYBERMEDIEVAL</div><h2 id="arenaTitle">Nível ${state.level} · Desafio de conhecimento</h2></div><span class="pill" id="connectionStatus">🟡 Local</span></div>
     <div class="hud">
       <span class="pill">👥 <b id="playerCount">1</b>/6</span><span class="pill">❤️ HP <b id="hpValue">100</b>/100</span>
       <span class="pill">⭐ <b id="scoreValue">${state.score}</b></span><span class="pill">🎯 Turno: <b id="turnValue">${esc(state.turn)}</b></span>
@@ -194,7 +195,7 @@ function renderArena(){
       <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-room room-c1">NÚCLEO DE REDES</div><div class="ruin-corridor corridor-c"></div><button class="ruin-door" onclick="enterRuin('underground')">ENTRADA · ENTRAR</button><i class="crack cr5"></i></div>
       <div class="encounter-point ep-a" title="Câmara da Criptografia">✦</div><div class="encounter-point ep-b" title="Observatório IA">✦</div><div class="encounter-point ep-c" title="Núcleo de Redes">✦</div>
       <div class="wall w1"></div><div class="wall w2"></div>
-      <div class="map-sign">🚪 Entre nas ruínas · explore salas · encontre jogadores</div>
+      <div class="map-sign">🧭 Explore as ruínas · descubra as salas de aprendizagem</div><div class="exploration-hint" id="explorationHint">📍 Pátio central · escolha uma ruína para começar</div>
       <div class="healer">🧙‍♀️<small>CURANDEIRA</small></div>
       <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
@@ -202,7 +203,7 @@ function renderArena(){
       <div class="arena-actions"><div><b>Movimentação</b><div class="small">WASD ou setas. A Curandeira recupera HP quando você se aproxima.</div></div>
       <div class="move-pad"><button onclick="movePlayer(0,-5)">↑</button><button onclick="movePlayer(-5,0)">←</button><button onclick="movePlayer(0,5)">↓</button><button onclick="movePlayer(5,0)">→</button></div></div>
       <h3>🎯 Alvo</h3><div id="targets" class="choices"></div>
-      <div id="battleQuestion"></div>
+      <div id="challengeQuestion"></div>
     </section>
     <section class="panel battle-panel"><h3>🏆 Ranking da sala</h3><div id="leaderboard"></div></section>
   </div></main>`;
@@ -212,7 +213,7 @@ function renderArena(){
 function renderArenaState(){
   normalizePlayers();ensureTurn();
   const count=Object.keys(state.players).length;
-  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.textContent=value};const title=document.getElementById("arenaTitle");if(title)title.textContent="Nível "+state.level+" · Batalha de conhecimento";
+  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.textContent=value};const title=document.getElementById("arenaTitle");if(title)title.textContent="Nível "+state.level+" · Desafio de conhecimento";
   set("playerCount",count);set("hpValue",state.hp);set("scoreValue",state.score);set("turnValue",state.turn||"—");
   const me=document.getElementById("me");
   if(me){me.style.left=state.position.x+"%";me.style.top=state.position.y+"%";me.style.bottom="auto";}
@@ -227,17 +228,17 @@ function renderArenaState(){
   if(board){
     board.innerHTML=Object.values(state.players).sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="card">#${i+1} <b>${esc(p.name)}</b> · ⭐ ${p.score} · ❤️ ${p.hp}</div>`).join("");
   }
-  renderBattleQuestion();
+  renderChallenge();
 }
 
-function renderBattleQuestion(){
-  const box=document.getElementById("battleQuestion");if(!box)return;
-  const q=BATTLE_QUESTIONS[state.battleIndex%BATTLE_QUESTIONS.length];
-  const myTurn=isMyTurn()&&!state.battleOver;
-  const canAttack=myTurn&&!!state.target&&!state.turnBusy;
+function renderChallenge(){
+  const box=document.getElementById("challengeQuestion");if(!box)return;
+  const q=CHALLENGE_QUESTIONS[state.challengeIndex%CHALLENGE_QUESTIONS.length];
+  const myTurn=isMyTurn()&&!state.challengeOver;
+  const canAttack=myTurn&&!!state.target&&!state.challengeBusy;
   box.innerHTML=`<h3>🧠 ${esc(q[0])} · ${myTurn?"SEU TURNO":"Aguardando "+esc(state.turn||"jogador")}</h3>
-    <p>${esc(q[1])}</p><div class="choices">${q[2].map((a,i)=>`<button class="choice battleAnswer" ${canAttack?"":"disabled"} onclick="resolveBattle(${i})">${esc(a)}</button>`).join("")}</div>
-    <p class="small">${state.target?"Alvo: "+esc(state.target):"Selecione um adversário para atacar."} · Acerto: -25 HP e +150 pontos · Erro: turno passa</p>`;
+    <p>${esc(q[1])}</p><div class="choices">${q[2].map((a,i)=>`<button class="choice battleAnswer" ${canAttack?"":"disabled"} onclick="resolveChallenge(${i})">${esc(a)}</button>`).join("")}</div>
+    <p class="small">${state.target?"Alvo: "+esc(state.target):"Selecione um colega para desafiar."} · Acerto: -25 HP e +150 pontos · Erro: turno passa</p>`;
 }
 
 function selectTarget(name){
@@ -275,10 +276,11 @@ function enterRuin(id){
     underground:{x:48,y:76,label:"🏰 Salão Subterrâneo"}
   };
   const entry=entries[id];
-  if(!entry||state.battleOver)return;
+  if(!entry||state.challengeOver)return;
   state.position={x:entry.x,y:entry.y};
   state.zone=id;
   state.lastEncounter="";
+  const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+entry.label+" · sala de aprendizagem";
   toast("🚪 Você entrou em "+entry.label+"!");
   syncSelf();broadcast("player_state",localPlayer());renderArenaState();
 }
@@ -293,7 +295,7 @@ function checkExploration(){
   if(zone!==state.zone){
     state.zone=zone;
     const labels={tower:"🏰 Você entrou na Torre Norte.",citadel:"🏰 Você entrou na Cidadela Leste.",underground:"🏰 Você entrou no Salão Subterrâneo.",campo:"🌿 Você voltou ao pátio das ruínas."};
-    toast(labels[zone]);
+    const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+labels[zone].replace("🏰 ","").replace("🌿 ","")+" · exploração ativa"; toast(labels[zone]);
   }
   const encounter=ENCOUNTER_POINTS.find(p=>Math.hypot(state.position.x-p.x,state.position.y-p.y)<5);
   if(encounter&&state.lastEncounter!==encounter.id){
@@ -321,7 +323,7 @@ function getDoorTransition(fromX,fromY,toX,toY){
   return null;
 }
 function movePlayer(dx,dy){
-  if(state.battleOver)return;
+  if(state.challengeOver)return;
   let nx=Math.max(5,Math.min(95,state.position.x+dx));
   let ny=Math.max(5,Math.min(95,state.position.y+dy));
   const door=getDoorTransition(state.position.x,state.position.y,nx,ny);
@@ -341,38 +343,38 @@ window.movePlayer=movePlayer;
 
 function advanceTurn(){
   const alive=aliveNames();
-  if(alive.length<=1){state.battleOver=true;state.turn=alive[0]||null;return;}
+  if(alive.length<=1){state.challengeOver=true;state.turn=alive[0]||null;return;}
   const current=alive.indexOf(state.turn);state.turn=alive[(current+1+alive.length)%alive.length];
-  state.battleIndex=(state.battleIndex+1)%BATTLE_QUESTIONS.length;if(state.battleIndex===0&&state.level<10){state.level++;state.battleRound++;toast("⬆️ Nível "+state.level+" desbloqueado!");}state.target=null;
+  state.challengeIndex=(state.challengeIndex+1)%CHALLENGE_QUESTIONS.length;if(state.challengeIndex===0&&state.level<10){state.level++;state.challengeRound++;toast("⬆️ Nível "+state.level+" desbloqueado!");}state.target=null;
   if(!state.connected)scheduleBotTurn();
 }
-function resolveBattle(answerIndex){
-  if(state.battleOver||!isMyTurn()||!state.target||state.turnBusy)return;
-  const q=BATTLE_QUESTIONS[state.battleIndex%BATTLE_QUESTIONS.length];
+function resolveChallenge(answerIndex){
+  if(state.challengeOver||!isMyTurn()||!state.target||state.challengeBusy)return;
+  const q=CHALLENGE_QUESTIONS[state.challengeIndex%CHALLENGE_QUESTIONS.length];
   const target=state.players[state.target];if(!target||target.hp<=0){state.target=null;renderArenaState();return;}
-  state.turnBusy=true;
+  state.challengeBusy=true;
   if(answerIndex===q[3]){
     state.score+=150;target.hp=Math.max(0,target.hp-25);toast("⚡ Acerto! -25 HP e +150 pontos.");
-    if(target.hp===0){state.score+=250;toast("🏆 Adversário derrotado! +250 pontos.");}
+    if(target.hp===0){state.score+=250;toast("🏆 Colega derrotado! +250 pontos.");}
   }else toast("🧠 Resposta incorreta. O turno passa.");
-  syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:state.target,battleIndex:state.battleIndex,level:state.level});
+  syncSelf();broadcast("battle_state",{players:state.players,turn:state.turn,target:state.target,challengeIndex:state.challengeIndex,level:state.level});
   setTimeout(()=>{
-    if(!state.battleOver){
+    if(!state.challengeOver){
       advanceTurn();
-      state.turnBusy=false;
+      state.challengeBusy=false;
       syncSelf();
-      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,level:state.level,battleOver:state.battleOver});
+      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,challengeIndex:state.challengeIndex,level:state.level,challengeOver:state.challengeOver});
       renderArenaState();
     } else {
-      state.turnBusy=false;
+      state.challengeBusy=false;
       syncSelf();
-      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,battleIndex:state.battleIndex,battleOver:true});
+      broadcast("battle_state",{players:state.players,turn:state.turn,target:null,challengeIndex:state.challengeIndex,challengeOver:true});
       renderArenaState();
-      toast("🏆 Batalha encerrada!");
+      toast("🏆 Desafio concluído!");
     }
   },700);
 }
-window.resolveBattle=resolveBattle;
+window.resolveChallenge=resolveChallenge;
 
 function syncSelf(){
   state.players[state.name]=localPlayer();
@@ -409,9 +411,9 @@ async function connectRealtime(){
         merged[state.name]=localPlayer();
         state.players=merged;
         if(payload.turn)state.turn=payload.turn;
-        if(Number.isInteger(payload.battleIndex))state.battleIndex=payload.battleIndex;if(Number.isInteger(payload.level))state.level=payload.level;
-        if(typeof payload.battleOver==="boolean")state.battleOver=payload.battleOver;
-        state.target=null;state.turnBusy=false;renderArenaState();
+        if(Number.isInteger(payload.challengeIndex))state.challengeIndex=payload.challengeIndex;if(Number.isInteger(payload.level))state.level=payload.level;
+        if(typeof payload.challengeOver==="boolean")state.challengeOver=payload.challengeOver;
+        state.target=null;state.challengeBusy=false;renderArenaState();
       }
     });
     state.channel.subscribe(async status=>{
