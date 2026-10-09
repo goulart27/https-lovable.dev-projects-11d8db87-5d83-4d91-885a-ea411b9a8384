@@ -328,7 +328,7 @@ function getDoorTransition(fromX,fromY,toX,toY){
     const crossX=fromX+(toX-fromX)*t;
     if(crossX>=d.x1&&crossX<=d.x2){
       // Sempre aterrissa no centro da passagem, do lado oposto ao que veio.
-      const entering=(fromY>d.y&&toY<=d.y)||(d.y===63&&fromY<d.y&&toY>=d.y);
+      const entering=d.y===63?(fromY<d.y&&toY>=d.y):(fromY>d.y&&toY<=d.y);
       return {x:d.center,y:entering?d.insideY:d.outsideY};
     }
   }
