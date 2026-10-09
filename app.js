@@ -30,13 +30,10 @@ const AVATAR_META={"🛡️ Guardião Endpoint":{icon:"🛡️",className:"avata
 const BADGES=["🧱 Guardião Firewall","🐧 Explorador Linux","🌐 Especialista Cisco","✨ Investigador IA","🛡️ Defensor Zero Trust","🔐 Mestre da Criptografia"];
 
 const RUIN_COLLIDERS=[
+  // Apenas paredes externas: o interior das salas fica livre para caminhar.
   {x:8,y:12,w:24,h:3},{x:8,y:12,w:3,h:25},{x:29,y:12,w:3,h:25},{x:8,y:34,w:10,h:3},{x:24,y:34,w:8,h:3},
   {x:68,y:12,w:24,h:3},{x:68,y:12,w:3,h:25},{x:89,y:12,w:3,h:25},{x:68,y:34,w:9,h:3},{x:83,y:34,w:9,h:3},
-  {x:32,y:63,w:32,h:3},{x:32,y:63,w:3,h:28},{x:61,y:63,w:3,h:28},{x:32,y:88,w:14,h:3},{x:52,y:88,w:12,h:3},
-  {x:30,y:25,w:17,h:3},{x:53,y:25,w:17,h:3},{x:74,y:53,w:20,h:3},
-  {x:16,y:21,w:7,h:2},{x:16,y:29,w:13,h:2},{x:21,y:21,w:2,h:10},
-  {x:76,y:21,w:8,h:2},{x:76,y:29,w:13,h:2},{x:84,y:21,w:2,h:10},
-  {x:39,y:70,w:18,h:2},{x:39,y:80,w:18,h:2},{x:47,y:70,w:2,h:12}
+  {x:32,y:63,w:12,h:3},{x:52,y:63,w:12,h:3},{x:32,y:63,w:3,h:28},{x:61,y:63,w:3,h:28},{x:32,y:88,w:14,h:3},{x:52,y:88,w:12,h:3}
 ];
 const RUIN_ZONES=[
   {id:"tower",name:"Torre Norte",x:10,y:14,w:20,h:19},
@@ -195,7 +192,7 @@ function renderArena(){
       <div class="ruin ruin-c"><div class="ruin-title">🏰 SALÃO SUBTERRÂNEO</div><div class="ruin-floor"></div><div class="ruin-room room-c1">NÚCLEO DE REDES</div><div class="ruin-corridor corridor-c"></div><button class="ruin-door" onclick="enterRuin('underground')">ENTRADA · ENTRAR</button><i class="crack cr5"></i></div>
       <div class="encounter-point ep-a" title="Câmara da Criptografia">✦</div><div class="encounter-point ep-b" title="Observatório IA">✦</div><div class="encounter-point ep-c" title="Núcleo de Redes">✦</div>
       <div class="wall w1"></div><div class="wall w2"></div>
-      <div class="map-sign">🧭 Explore as ruínas · descubra as salas de aprendizagem</div><div class="exploration-hint" id="explorationHint">📍 Pátio central · escolha uma ruína para começar</div>
+      <div class="map-sign">🧭 Explore as ruínas · descubra as salas de aprendizagem</div><div class="exploration-hint" id="explorationHint">📍 Pátio central · escolha uma ruína para começar</div><button id="exitRuin" class="exit-ruin" onclick="exitRuin()" hidden>↩ Voltar ao pátio</button>
       <div class="healer">🧙‍♀️<small>CURANDEIRA</small></div>
       <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
@@ -280,11 +277,24 @@ function enterRuin(id){
   state.position={x:entry.x,y:entry.y};
   state.zone=id;
   state.lastEncounter="";
-  const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+entry.label+" · sala de aprendizagem";
+  const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+entry.label+" · explore e encontre o ponto de aprendizagem";\n  const exitButton=document.getElementById("exitRuin"); if(exitButton) exitButton.hidden=false;
   toast("🚪 Você entrou em "+entry.label+"!");
   syncSelf();broadcast("player_state",localPlayer());renderArenaState();
 }
 window.enterRuin=enterRuin;
+
+function exitRuin(){
+  const exits={tower:{x:20,y:42},citadel:{x:80,y:42},underground:{x:48,y:57}};
+  const p=exits[state.zone];
+  if(!p){state.position={x:50,y:45};state.zone="campo";}
+  else{state.position={x:p.x,y:p.y};state.zone="campo";}
+  state.lastEncounter="";
+  const hint=document.getElementById("explorationHint");if(hint)hint.textContent="📍 Pátio central · escolha outra ruína para explorar";
+  const button=document.getElementById("exitRuin");if(button)button.hidden=true;
+  toast("↩ Você voltou ao pátio. Escolha outro cenário!");
+  syncSelf();broadcast("player_state",localPlayer());renderArenaState();
+}
+window.exitRuin=exitRuin;
 
 function getRuinZone(x,y){
   const z=RUIN_ZONES.find(r=>x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h);
@@ -295,7 +305,7 @@ function checkExploration(){
   if(zone!==state.zone){
     state.zone=zone;
     const labels={tower:"🏰 Você entrou na Torre Norte.",citadel:"🏰 Você entrou na Cidadela Leste.",underground:"🏰 Você entrou no Salão Subterrâneo.",campo:"🌿 Você voltou ao pátio das ruínas."};
-    const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+labels[zone].replace("🏰 ","").replace("🌿 ","")+" · exploração ativa"; toast(labels[zone]);
+    const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+labels[zone].replace("🏰 ","").replace("🌿 ","")+" · exploração ativa";\n    const exitButton=document.getElementById("exitRuin");if(exitButton)exitButton.hidden=zone==="campo";toast(labels[zone]);
   }
   const encounter=ENCOUNTER_POINTS.find(p=>Math.hypot(state.position.x-p.x,state.position.y-p.y)<5);
   if(encounter&&state.lastEncounter!==encounter.id){
@@ -306,9 +316,9 @@ function checkExploration(){
 }
 function getDoorTransition(fromX,fromY,toX,toY){
   const doors=[
-    {x1:15,x2:27,y:37,insideY:31},
-    {x1:73,x2:87,y:37,insideY:31},
-    {x1:42,x2:54,y:63,insideY:69}
+    {x1:15,x2:27,y:37,center:20,insideY:31,outsideY:42},
+    {x1:73,x2:87,y:37,center:80,insideY:31,outsideY:42},
+    {x1:42,x2:54,y:63,center:48,insideY:69,outsideY:57}
   ];
   for(const d of doors){
     const crossed=(fromY<d.y&&toY>=d.y)||(fromY>d.y&&toY<=d.y);
@@ -317,7 +327,9 @@ function getDoorTransition(fromX,fromY,toX,toY){
     const t=Math.abs(dy)>0.001?(d.y-fromY)/dy:0;
     const crossX=fromX+(toX-fromX)*t;
     if(crossX>=d.x1&&crossX<=d.x2){
-      return {x:Math.max(d.x1+2,Math.min(d.x2-2,toX)),y:d.insideY};
+      // Sempre aterrissa no centro da passagem, do lado oposto ao que veio.
+      const entering=(fromY>d.y&&toY<=d.y)||(d.y===63&&fromY<d.y&&toY>=d.y);
+      return {x:d.center,y:entering?d.insideY:d.outsideY};
     }
   }
   return null;
