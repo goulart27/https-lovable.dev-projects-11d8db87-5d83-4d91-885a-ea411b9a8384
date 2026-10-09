@@ -268,16 +268,17 @@ function canUseRuinDoor(fromX,fromY,toX,toY){
 }
 function enterRuin(id){
   const entries={
-    tower:{x:20,y:27,label:"🏰 Torre Norte"},
-    citadel:{x:80,y:27,label:"🏰 Cidadela Leste"},
-    underground:{x:48,y:76,label:"🏰 Salão Subterrâneo"}
+    tower:{x:20,y:24,label:"🏰 Torre Norte"},
+    citadel:{x:80,y:24,label:"🏰 Cidadela Leste"},
+    underground:{x:48,y:72,label:"🏰 Salão Subterrâneo"}
   };
   const entry=entries[id];
   if(!entry||state.challengeOver)return;
   state.position={x:entry.x,y:entry.y};
   state.zone=id;
   state.lastEncounter="";
-  const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+entry.label+" · explore e encontre o ponto de aprendizagem";\n  const exitButton=document.getElementById("exitRuin"); if(exitButton) exitButton.hidden=false;
+  const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+entry.label+" · explore e encontre o ponto de aprendizagem";
+  const exitButton=document.getElementById("exitRuin"); if(exitButton) exitButton.hidden=false;
   toast("🚪 Você entrou em "+entry.label+"!");
   syncSelf();broadcast("player_state",localPlayer());renderArenaState();
 }
@@ -305,7 +306,8 @@ function checkExploration(){
   if(zone!==state.zone){
     state.zone=zone;
     const labels={tower:"🏰 Você entrou na Torre Norte.",citadel:"🏰 Você entrou na Cidadela Leste.",underground:"🏰 Você entrou no Salão Subterrâneo.",campo:"🌿 Você voltou ao pátio das ruínas."};
-    const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+labels[zone].replace("🏰 ","").replace("🌿 ","")+" · exploração ativa";\n    const exitButton=document.getElementById("exitRuin");if(exitButton)exitButton.hidden=zone==="campo";toast(labels[zone]);
+    const hint=document.getElementById("explorationHint"); if(hint) hint.textContent="📍 "+labels[zone].replace("🏰 ","").replace("🌿 ","")+" · exploração ativa";
+    const exitButton=document.getElementById("exitRuin");if(exitButton)exitButton.hidden=zone==="campo";toast(labels[zone]);
   }
   const encounter=ENCOUNTER_POINTS.find(p=>Math.hypot(state.position.x-p.x,state.position.y-p.y)<5);
   if(encounter&&state.lastEncounter!==encounter.id){
