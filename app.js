@@ -197,9 +197,9 @@ function renderArena(){
       <div class="player selected" id="me">${avatarMarkup(state.avatar,true)}</div><div id="remotePlayers"></div>
     </div>
     <section class="panel battle-panel">
-      <div class="arena-actions"><div><b>Movimentação</b><div class="small">WASD ou setas. A Curandeira recupera HP quando você se aproxima.</div></div>
+      <div class="arena-actions"><div><b>Como jogar e explorar</b><div class="small">1. Ande com WASD, setas ou os botões. 2. Clique na porta dourada para entrar. 3. Para trocar de cenário, use “Voltar ao pátio”. 4. Também pode sair atravessando a abertura central da ruína. A Curandeira recupera HP quando você se aproxima.</div></div>
       <div class="move-pad"><button onclick="movePlayer(0,-5)">↑</button><button onclick="movePlayer(-5,0)">←</button><button onclick="movePlayer(0,5)">↓</button><button onclick="movePlayer(5,0)">→</button></div></div>
-      <h3>🎯 Alvo</h3><div id="targets" class="choices"></div>
+      <h3>👥 Escolha um colega para a rodada</h3><div id="targets" class="choices"></div>
       <div id="challengeQuestion"></div>
     </section>
     <section class="panel battle-panel"><h3>🏆 Ranking da sala</h3><div id="leaderboard"></div></section>
@@ -235,7 +235,7 @@ function renderChallenge(){
   const canAttack=myTurn&&!!state.target&&!state.challengeBusy;
   box.innerHTML=`<h3>🧠 ${esc(q[0])} · ${myTurn?"SEU TURNO":"Aguardando "+esc(state.turn||"jogador")}</h3>
     <p>${esc(q[1])}</p><div class="choices">${q[2].map((a,i)=>`<button class="choice battleAnswer" ${canAttack?"":"disabled"} onclick="resolveChallenge(${i})">${esc(a)}</button>`).join("")}</div>
-    <p class="small">${state.target?"Alvo: "+esc(state.target):"Selecione um colega para desafiar."} · Acerto: -25 HP e +150 pontos · Erro: turno passa</p>`;
+    <p class="small">${state.target?"Alvo: "+esc(state.target):"Selecione um colega para participar da rodada de perguntas."} · Acerto: -25 HP e +150 pontos · Erro: turno passa</p>`;
 }
 
 function selectTarget(name){
